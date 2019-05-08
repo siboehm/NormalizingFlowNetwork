@@ -38,34 +38,22 @@ def build_input_pipeline(x, y, batch_size):
 tf.set_random_seed(22)
 
 
-n_data_points = 100
+n_data_points = 90
 noise = 0.2
 heteroscedastic_noise = 0.5
-n_training_steps = 1500
-model_heteroscedasticity = False
+n_training_steps = 3500
+model_heteroscedasticity = True
 bayesian_nn = True
+batch_size = 30
+num_batches = n_data_points / batch_size
+learning_rate = 0.05
+activation_function = 'relu'
 
 x_train, y_train = build_toy_dataset(n_data_points, noise, heteroscedastic_noise)
 
 
-# this generate the variables to be used as learnable priors over the weights of the net
-def mixture_prior_params(sigma_1, sigma_2, pi):
-    params = K.variable([sigma_1, sigma_2, pi], name="mixture_prior_params")
-    sigma = np.sqrt(pi * sigma_1 ** 2 + (1 - pi) * sigma_2 ** 2)
-    return params, sigma
-
-
-# Mixture prior parameters shared across DenseVariational layer instances
-prior_params, prior_sigma = mixture_prior_params(sigma_1=1.0, sigma_2=0.1, pi=0.2)
-
-# defines the prior over weights as the mixture of two Gaussians
-def log_mixture_prior_prob(w):
-    comp_1_dist = tf.distributions.Normal(0.0, prior_params[0])
-    comp_2_dist = tf.distributions.Normal(0.0, prior_params[1])
-    comp_1_weight = prior_params[2]
-    return K.log(
-        comp_1_weight * comp_1_dist.prob(w) + (1 - comp_1_weight) * comp_2_dist.prob(w)
-    )
+# defines the prior over weights as a standard Normal
+weights_prior = tf.distributions.Normal(loc=0., scale=1.)
 
 
 class DenseVariational(Layer):
@@ -76,31 +64,30 @@ class DenseVariational(Layer):
         super().__init__(**kwargs)
 
     def build(self, input_shape):
-        self._trainable_weights.append(prior_params)
 
         # weight and bias are initialized as the pior
         self.kernel_mu = self.add_weight(
             name="kernel_mu",
             shape=(input_shape[1], self.output_dim),
-            initializer=initializers.normal(stddev=prior_sigma),
+            initializer="random_normal",
             trainable=True,
         )
         self.bias_mu = self.add_weight(
             name="bias_mu",
             shape=(self.output_dim,),
-            initializer=initializers.normal(stddev=prior_sigma),
+            initializer="random_normal",
             trainable=True,
         )
         self.kernel_rho = self.add_weight(
             name="kernel_rho",
             shape=(input_shape[1], self.output_dim),
-            initializer=initializers.constant(0.0),
+            initializer="random_normal",
             trainable=True,
         )
         self.bias_rho = self.add_weight(
             name="bias_rho",
             shape=(self.output_dim,),
-            initializer=initializers.constant(0.0),
+            initializer="random_normal",
             trainable=True,
         )
         super().build(input_shape)
@@ -129,12 +116,10 @@ class DenseVariational(Layer):
     def kl_loss(self, w, mu, sigma):
         variational_dist = tf.distributions.Normal(mu, sigma)
         return kl_loss_weight * K.sum(
-            variational_dist.log_prob(w) - log_mixture_prior_prob(w)
+            variational_dist.log_prob(w) - weights_prior.log_prob(w)
         )
 
 
-batch_size = n_data_points
-num_batches = n_data_points / batch_size
 kl_loss_weight = 1.0 / num_batches
 
 output_size = 2 if model_heteroscedasticity else 1
@@ -142,29 +127,27 @@ if bayesian_nn:
     model = Sequential(
         [
             DenseVariational(20, kl_loss_weight=kl_loss_weight, input_shape=(1,)),
-            Activation("relu"),
+            Activation(activation_function),
             DenseVariational(output_size, kl_loss_weight=kl_loss_weight),
         ]
     )
 else:
     model = Sequential(
-        [Dense(20, input_shape=(1,)), Activation("relu"), Dense(output_size)]
+        [Dense(20, input_shape=(1,)), Activation(activation_function), Dense(output_size)]
     )
 
 
 def neg_log_likelihood(y_true, y_pred):
     if model_heteroscedasticity:
-        loc, sigma = tf.split(y_pred, 2, axis=1)
-        sigma = tf.nn.softplus(sigma)
-        dist = tf.distributions.Normal(loc=loc, scale=sigma)
+        loc, rho = tf.split(y_pred, [1, 1], axis=1)
+        sigma = tf.nn.softplus(rho)
+        dist = tf.distributions.Normal(loc=loc, scale=1. + sigma)
     else:
         dist = tf.distributions.Normal(loc=y_pred, scale=1.0)
     return K.sum(-dist.log_prob(y_true))
 
 
-model.compile(
-    loss=neg_log_likelihood, optimizer=optimizers.Adam(lr=0.03), metrics=["mse"]
-)
+model.compile(loss=neg_log_likelihood, optimizer=optimizers.Adam(lr=learning_rate))
 model.fit(x_train, y_train, batch_size=batch_size, epochs=n_training_steps, verbose=2)
 
 
