@@ -140,8 +140,7 @@ else:
 def neg_log_likelihood(y_true, y_pred):
     if model_heteroscedasticity:
         loc, rho = tf.split(y_pred, [1, 1], axis=1)
-        sigma = tf.nn.softplus(rho)
-        dist = tf.distributions.Normal(loc=loc, scale=1. + sigma)
+        dist = tf.distributions.Normal(loc=loc, scale=1e-3 + tf.nn.softplus(0.05 * rho))
     else:
         dist = tf.distributions.Normal(loc=y_pred, scale=1.0)
     return K.sum(-dist.log_prob(y_true))
