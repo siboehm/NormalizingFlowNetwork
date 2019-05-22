@@ -5,36 +5,29 @@ import tensorflow_probability as tfp
 class InvertedRadialFlow(tfp.bijectors.Bijector):
     """
     Implements a bijector x = y + (alpha * beta * (y - y_0)) / (alpha + abs(y - y_0)).
-
     Args:
         params: Tensor shape (?, n_dims+2). This will be split into the parameters
             alpha (?, 1), beta (?, 1), gamma (?, n_dims).
             Furthermore alpha will be constrained to assure the invertability of the flow
         n_dims: The dimension of the distribution that will be transformed
         name: The name to give this particular flow
-
     """
+
     _alpha = None
     _beta = None
     _gamma = None
 
-    def __init__(self, a, b, g, validate_args=False, name='InvertedRadialFlow'):
-        """
-        Parameter shapes (assuming you're transforming a distribution over d-space):
-
-        shape alpha = (?, 1)
-        shape beta = (?, 1)
-        shape gamma = (?, ndims)
-        """
-        super(InvertedRadialFlow, self).__init__(validate_args=validate_args, name=name, forward_min_event_ndims=0)
-
-        # split the input parameter into the individual parameters alpha, beta, gamma
+    def __init__(self, alpha, beta, gamma, name="InvertedRadialFlow"):
+        super(InvertedRadialFlow, self).__init__(
+            validate_args=False,
+            name=name,
+            inverse_min_event_ndims=1,
+        )
 
         # constraining the parameters before they are assigned to ensure invertibility
-        print(a, b, g)
-        self._alpha = a
-        self._beta = b
-        self._gamma = g
+        self._alpha = self._alpha_circ(alpha)
+        self._beta = self._beta_circ(beta)
+        self._gamma = gamma
 
     @staticmethod
     def get_param_size(n_dims):
@@ -45,10 +38,10 @@ class InvertedRadialFlow(tfp.bijectors.Bijector):
         return 1 + 1 + n_dims
 
     def _r(self, z):
-        return tf.reduce_sum(tf.abs(z - self._gamma), 1, keepdims=True)
+        return tf.reduce_sum(tf.abs(z - self._gamma), 1, keep_dims=True)
 
     def _h(self, r):
-        return 1. / (self._alpha + r)
+        return 1.0 / (self._alpha + r)
 
     def _inverse(self, z):
         """
@@ -63,10 +56,13 @@ class InvertedRadialFlow(tfp.bijectors.Bijector):
         Computes the ln of the absolute determinant of the jacobian
         """
         r = self._r(z)
-        h = self._h(r)
-        der_h = tf.gradients(h, [r])[0]
+        with tf.GradientTape() as g:
+            g.watch(r)
+            h = self._h(r)
+        der_h = g.gradient(h, r)
         ab = self._alpha * self._beta
-        det = (1. + ab * h) ** (self.n_dims - 1) * (1. + ab * h + ab * der_h * r)
+        det = (1.0 + ab * h) ** (1 - 1) * (1.0 + ab * h + ab * der_h * r)
+        det = tf.squeeze(det, axis=-1)
         return tf.log(det)
 
     @staticmethod
@@ -81,4 +77,4 @@ class InvertedRadialFlow(tfp.bijectors.Bijector):
         """
         Method for constraining the beta parameter to meet the invertibility requirements
         """
-        return tf.exp(beta) - 1.
+        return tf.exp(beta) - 1.0
