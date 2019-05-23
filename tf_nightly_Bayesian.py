@@ -14,17 +14,16 @@ if not tf2.enabled():
 tfd = tfp.distributions
 from normalizing_flows.InvertedRadialFlow import InvertedRadialFlow
 from data_gen import gen_cosine_noise_data, gen_trippe_hetero_data
-from normalizing_flows.AffineFlow import AffineFlow
 from normalizing_flows.InvertedPlanarFlow import InvertedPlanarFlow
 from normalizing_flows.InvertedRadialFlow import InvertedRadialFlow
 
-x_train, y_train = gen_trippe_hetero_data(
-    1, n_pts=400, heteroscedastic=True, bimodal=True
-)
-x_train, y_train = gen_cosine_noise_data(100, noise_std=0.3, heterosced_noise=0.5)
+tf.random.set_seed(22)
+# x_train, y_train = gen_trippe_hetero_data(
+#     1, n_pts=400, heteroscedastic=True, bimodal=True
+# )
+x_train, y_train = gen_cosine_noise_data(300, noise_std=0.3, heterosced_noise=0.5)
 plt.scatter(x_train, y_train)
 plt.show()
-
 
 param_size = 3
 
@@ -81,13 +80,14 @@ model = tf.keras.Sequential(
     ]
 )
 
-nf = lambda t: tfd.TransformedDistribution(
+def nf(t):
+    return tfd.TransformedDistribution(
     distribution=tfd.MultivariateNormalDiag(
         loc=[[0.0]], scale_identity_multiplier=[[1.0]]
     ),
     bijector=tfp.bijectors.Chain(
         [
-            InvertedRadialFlow(t[..., 2:3], t[..., 3:4], t[..., 4:5]),
+            # InvertedPlanarFlow(t[..., 2:3], t[..., 3:4], t[..., 4:5]),
             tfp.bijectors.Affine(shift=t[..., 0:1], scale_diag=t[..., 1:2]),
         ]
     ),
@@ -96,9 +96,8 @@ nf = lambda t: tfd.TransformedDistribution(
 
 model = tf.keras.Sequential(
     [
-        tf.keras.layers.Dense(16, activation="tanh"),
-        tf.keras.layers.Dense(16, activation="tanh"),
-        tf.keras.layers.Dense(5, activation="linear"),
+        tf.keras.layers.Dense(16, activation="relu"),
+        tf.keras.layers.Dense(2, activation="linear"),
         tfp.layers.DistributionLambda(
             make_distribution_fn=nf, convert_to_tensor_fn=lambda d: d.log_prob([1.0])
         ),

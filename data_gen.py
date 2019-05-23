@@ -3,6 +3,7 @@ import numpy as np
 
 # a cosine + some noise
 def gen_cosine_noise_data(num, noise_std=0.2, heterosced_noise=0.0):
+    np.random.seed(22)
     x = np.linspace(-4, 4, num=num)
     y_heterosced_noise = np.zeros(x.shape)
     for i in range(int(num / 2)):
@@ -30,6 +31,7 @@ def gen_trippe_hetero_data(
         heteroscedastic: true to generate heteroscedastic data
         asymetric: set True to have noise have asymetric tails
     """
+    np.random.seed(22)
     bounds = [-np.pi, np.pi]
     range_size = bounds[1] - bounds[0]
     if heteroscedastic:

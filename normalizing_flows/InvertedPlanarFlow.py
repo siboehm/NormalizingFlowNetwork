@@ -76,5 +76,4 @@ class InvertedPlanarFlow(tfp.bijectors.Bijector):
         """
         psi = self._der_tanh(self._wzb(z)) * self._w
         det_grad = 1.0 + tf.math.reduce_sum(self._u * psi, 1)
-        print(det_grad.shape)
         return tf.math.log(tf.math.abs(det_grad))
