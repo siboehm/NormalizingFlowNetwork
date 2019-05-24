@@ -22,13 +22,15 @@ class InvertedRadialFlow(tfp.bijectors.Bijector):
     _beta = None
     _gamma = None
 
-    def __init__(self, alpha, beta, gamma, name="InvertedRadialFlow"):
+    def __init__(self, t, n_dims, name="InvertedRadialFlow"):
         super(InvertedRadialFlow, self).__init__(
             validate_args=False,
             name=name,
             inverse_min_event_ndims=1,
         )
 
+        assert t.shape[-1] == n_dims + 2
+        alpha, beta, gamma = t[..., 0:1], t[..., 1:2], t[..., 2: n_dims + 2]
         # constraining the parameters before they are assigned to ensure invertibility
         self._alpha = self._alpha_circ(alpha)
         self._beta = self._beta_circ(beta)

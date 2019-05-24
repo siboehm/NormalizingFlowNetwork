@@ -18,12 +18,14 @@ class InvertedPlanarFlow(tfp.bijectors.Bijector):
 
     _u, _w, _b = None, None, None
 
-    def __init__(self, u, w, b, name="Inverted_Planar_Flow"):
+    def __init__(self, t, n_dims, name="Inverted_Planar_Flow"):
         super(InvertedPlanarFlow, self).__init__(
             validate_args=False,
             name=name,
             inverse_min_event_ndims=1,
         )
+        assert t.shape[-1] == 2 * n_dims + 1
+        u, w, b = t[..., 0:n_dims], t[..., n_dims:2*n_dims], t[..., 2*n_dims: 2*n_dims + 1]
 
         # constrain u before assigning it
         self._u = self._u_circ(u, w)
@@ -36,7 +38,7 @@ class InvertedPlanarFlow(tfp.bijectors.Bijector):
         :param n_dims: The dimension of the distribution to be transformed by the flow
         :return: (int array) The dimension of the parameter space for this flow, n_dims + n_dims + 1
         """
-        return [n_dims, n_dims, 1]
+        return n_dims + n_dims + 1
 
     @staticmethod
     def _u_circ(u, w):
