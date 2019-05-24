@@ -45,7 +45,7 @@ class InvertedRadialFlow(tfp.bijectors.Bijector):
         return 1 + 1 + n_dims
 
     def _r(self, z):
-        return tf.reduce_sum(tf.abs(z - self._gamma), 1, keep_dims=True)
+        return tf.math.reduce_sum(tf.abs(z - self._gamma), 1, keepdims=True)
 
     def _h(self, r):
         return 1.0 / (self._alpha + r)
@@ -70,7 +70,7 @@ class InvertedRadialFlow(tfp.bijectors.Bijector):
         ab = self._alpha * self._beta
         det = (1.0 + ab * h) ** (1 - 1) * (1.0 + ab * h + ab * der_h * r)
         det = tf.squeeze(det, axis=-1)
-        return tf.log(det)
+        return tf.math.log(det)
 
     @staticmethod
     def _alpha_circ(alpha):

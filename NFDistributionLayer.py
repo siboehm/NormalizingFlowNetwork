@@ -71,7 +71,6 @@ class NFDistributionLayer(tfp.layers.DistributionLambda):
             FLOWS[flow_type](t[..., begin : begin + size], n_dims)
             for begin, size, flow_type in zip(split_beginnings, param_sizes, flow_types)
         ]
-        assert len(chain) == len(flow_types)
         return tfp.bijectors.Chain(chain)
 
     @staticmethod
