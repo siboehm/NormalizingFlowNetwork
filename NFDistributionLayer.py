@@ -32,17 +32,17 @@ class NFDistributionLayer(tfp.layers.DistributionLambda):
 
         # as keras transforms tensors, this layer needs to have an tensor-like output
         # therefore a function needs to be provided that transforms a distribution into a tensor
-        convert_ttf = lambda d: d.log_prob([1.0] * n_dims)
-        make_flow = lambda t: tfd.TransformedDistribution(
+        convert_ttfn = lambda d: d.log_prob([1.0] * n_dims)
+        make_flow_dist = lambda t: tfd.TransformedDistribution(
             distribution=self._get_base_dist(
-                t[..., 0 : 2 * n_dims] if trainable_base_dist else None, n_dims
+                (t[..., 0 : 2 * n_dims] if trainable_base_dist else None), n_dims
             ),
             bijector=self._get_bijector(
-                t[..., 2 * n_dims :] if trainable_base_dist else t, flow_types, n_dims
+                (t[..., 2 * n_dims :] if trainable_base_dist else t), flow_types, n_dims
             ),
         )
         super().__init__(
-            make_distribution_fn=make_flow, convert_to_tensor_fn=convert_ttf
+            make_distribution_fn=make_flow_dist, convert_to_tensor_fn=convert_ttfn
         )
 
     def get_total_param_size(self):
@@ -61,7 +61,7 @@ class NFDistributionLayer(tfp.layers.DistributionLambda):
     @staticmethod
     def _get_bijector(t, flow_types, n_dims):
         # intuitively, we want to flows to go from base_dist -> transformed dist
-        flow_types = reversed(flow_types)
+        flow_types = list(reversed(flow_types))
         param_sizes = [
             FLOWS[flow_type].get_param_size(n_dims) for flow_type in flow_types
         ]
@@ -71,6 +71,7 @@ class NFDistributionLayer(tfp.layers.DistributionLambda):
             FLOWS[flow_type](t[..., begin : begin + size], n_dims)
             for begin, size, flow_type in zip(split_beginnings, param_sizes, flow_types)
         ]
+        assert len(chain) == len(flow_types)
         return tfp.bijectors.Chain(chain)
 
     @staticmethod

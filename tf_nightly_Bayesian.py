@@ -12,20 +12,16 @@ if not tf2.enabled():
     assert tf2.enabled()
 
 tfd = tfp.distributions
-from normalizing_flows.InvertedRadialFlow import InvertedRadialFlow
 from data_gen import gen_cosine_noise_data, gen_trippe_hetero_data
-from normalizing_flows.InvertedPlanarFlow import InvertedPlanarFlow
-from normalizing_flows.InvertedRadialFlow import InvertedRadialFlow
+from NFDistributionLayer import NFDistributionLayer
 
 tf.random.set_seed(22)
-# x_train, y_train = gen_trippe_hetero_data(
-#     1, n_pts=400, heteroscedastic=True, bimodal=True
-# )
-x_train, y_train = gen_cosine_noise_data(300, noise_std=0.3, heterosced_noise=0.5)
+x_train, y_train = gen_trippe_hetero_data(
+    1, n_pts=400, heteroscedastic=True, bimodal=True
+)
+# x_train, y_train = gen_cosine_noise_data(300, noise_std=0.3, heterosced_noise=0.5)
 plt.scatter(x_train, y_train)
 plt.show()
-
-param_size = 3
 
 
 def posterior_mean_field(kernel_size, bias_size=0, dtype=None):
@@ -59,6 +55,8 @@ def prior(kernel_size, bias_size=0, dtype=None, trainable=False):
         ]
     )
 
+
+dist_layer = NFDistributionLayer(('radial', 'radial'), 1, True)
 model = tf.keras.Sequential(
     [
         tfp.layers.DenseVariational(
@@ -69,38 +67,22 @@ model = tf.keras.Sequential(
             activation="relu",
         ),
         tfp.layers.DenseVariational(
-            param_size,
+            dist_layer.get_total_param_size(),
             posterior_mean_field,
             prior,
             kl_weight=1 / x_train.shape[0],
             activation="linear",
         ),
-        tfp.layers.DistributionLambda(make_distribution_fn=nf,
-                                      convert_to_tensor_fn=lambda dist: dist.log_prob(0.)),
+        dist_layer
     ]
-)
-
-def nf(t):
-    return tfd.TransformedDistribution(
-    distribution=tfd.MultivariateNormalDiag(
-        loc=[[0.0]], scale_identity_multiplier=[[1.0]]
-    ),
-    bijector=tfp.bijectors.Chain(
-        [
-            # InvertedPlanarFlow(t[..., 2:3], t[..., 3:4], t[..., 4:5]),
-            tfp.bijectors.Affine(shift=t[..., 0:1], scale_diag=t[..., 1:2]),
-        ]
-    ),
 )
 
 
 model = tf.keras.Sequential(
     [
         tf.keras.layers.Dense(16, activation="relu"),
-        tf.keras.layers.Dense(2, activation="linear"),
-        tfp.layers.DistributionLambda(
-            make_distribution_fn=nf, convert_to_tensor_fn=lambda d: d.log_prob([1.0])
-        ),
+        tf.keras.layers.Dense(dist_layer.get_total_param_size(), activation="linear"),
+        dist_layer
     ]
 )
 
@@ -110,8 +92,7 @@ model.compile(
 )
 
 model.fit(x_train, y_train, epochs=1000, verbose=2)
-x_test = np.linspace(-4, 4, num=100).reshape((100, 1))
+x_test = np.linspace(-3, 3, num=100).reshape((100, 1))
 result_dist = model(x_test)
-print(result_dist)
-plot_dist(x_test, dist=result_dist, y_range=[-8, 8], y_num=100)
+plot_dist(x_test, dist=result_dist, y_range=[-12, 12], y_num=100)
 plt.show()
