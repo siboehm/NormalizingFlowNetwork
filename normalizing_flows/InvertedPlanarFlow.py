@@ -20,12 +20,14 @@ class InvertedPlanarFlow(tfp.bijectors.Bijector):
 
     def __init__(self, t, n_dims, name="Inverted_Planar_Flow"):
         super(InvertedPlanarFlow, self).__init__(
-            validate_args=False,
-            name=name,
-            inverse_min_event_ndims=1,
+            validate_args=False, name=name, inverse_min_event_ndims=1
         )
         assert t.shape[-1] == 2 * n_dims + 1
-        u, w, b = t[..., 0:n_dims], t[..., n_dims:2*n_dims], t[..., 2*n_dims: 2*n_dims + 1]
+        u, w, b = (
+            t[..., 0:n_dims],
+            t[..., n_dims : 2 * n_dims],
+            t[..., 2 * n_dims : 2 * n_dims + 1],
+        )
 
         # constrain u before assigning it
         self._u = self._u_circ(u, w)
