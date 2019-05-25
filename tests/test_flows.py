@@ -1,16 +1,17 @@
 import tensorflow as tf
-import tensorflow_probability as tfp
 from tensorflow.python import tf2
-from normalizing_flows import FLOWS
-from normalizing_flows import AffineFlow
-import pytest
 
 if not tf2.enabled():
     import tensorflow.compat.v2 as tf
 
     tf.enable_v2_behavior()
     assert tf2.enabled()
+import tensorflow_probability as tfp
+
 tfd = tfp.distributions
+from normalizing_flows import FLOWS
+from normalizing_flows import AffineFlow
+import pytest
 
 
 def flow_dimension_testing(flow_name):

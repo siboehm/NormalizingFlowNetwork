@@ -11,7 +11,43 @@ if not tf2.enabled():
 tfd = tfp.distributions
 
 
-class NFDistributionLayer(tfp.layers.DistributionLambda):
+class MeanFieldLayer(tfp.layers.DistributionLambda):
+    n_dims, uniform_scale = None, None
+
+    def __init__(self, n_dims, uniform_scale=False, dtype=None):
+        """
+        A subclass of Distribution Lambda. A layer that uses it's input to parametrize n_dims-many indepentent normal
+        distributions (aka mean field)
+        :param n_dims: Dimension of the distribution that's being output by the Layer
+        """
+        self.n_dims = n_dims
+        self.uniform_scale = n_dims
+        make_dist_fn = self._get_distribution_fn(n_dims, uniform_scale)
+        super().__init__(make_distribution_fn=make_dist_fn, dtype=dtype)
+
+    @staticmethod
+    def _get_distribution_fn(n_dims, uniform_scale):
+        c = tf.math.log(tf.math.expm1(1.0))
+        scale = (
+            lambda t: 1.0
+            if uniform_scale
+            else 1e-5 + tf.nn.softplus(c + t[..., n_dims:])
+        )
+
+        def make_dist_fn(t):
+            assert t.shape[-1] == (n_dims if uniform_scale else 2 * n_dims)
+            tfd.Independent(
+                tfd.Normal(loc=t[..., :n_dims], scale=scale(t)),
+                reinterpreted_batch_ndims=1,
+            )
+
+        return make_dist_fn
+
+    def get_total_param_size(self):
+        return self.n_dims if self.uniform_scale else 2 * self.n_dims
+
+
+class InverseNormalizingFlowLayer(tfp.layers.DistributionLambda):
     _flow_types = None
     _trainable_base_dist = None
     _n_dims = None
@@ -32,6 +68,7 @@ class NFDistributionLayer(tfp.layers.DistributionLambda):
 
         # as keras transforms tensors, this layer needs to have an tensor-like output
         # therefore a function needs to be provided that transforms a distribution into a tensor
+        # per default the .sample() function is used, but our reversed flows cannot perform that operation
         convert_ttfn = lambda d: d.log_prob([1.0] * n_dims)
         make_flow_dist = lambda t: tfd.TransformedDistribution(
             distribution=self._get_base_dist(
