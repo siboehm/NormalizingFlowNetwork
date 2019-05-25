@@ -21,27 +21,31 @@ class MeanFieldLayer(tfp.layers.DistributionLambda):
         :param n_dims: Dimension of the distribution that's being output by the Layer
         """
         self.n_dims = n_dims
-        self.uniform_scale = n_dims
+        self.uniform_scale = uniform_scale
         make_dist_fn = self._get_distribution_fn(n_dims, uniform_scale)
+
         super().__init__(make_distribution_fn=make_dist_fn, dtype=dtype)
 
     @staticmethod
     def _get_distribution_fn(n_dims, uniform_scale):
-        c = tf.math.log(tf.math.expm1(1.0))
-        scale = (
-            lambda t: 1.0
-            if uniform_scale
-            else 1e-5 + tf.nn.softplus(c + t[..., n_dims:])
-        )
+        if uniform_scale:
 
-        def make_dist_fn(t):
-            assert t.shape[-1] == (n_dims if uniform_scale else 2 * n_dims)
-            tfd.Independent(
-                tfd.Normal(loc=t[..., :n_dims], scale=scale(t)),
-                reinterpreted_batch_ndims=1,
+            return lambda t: tfd.Independent(
+                tfd.Normal(loc=t[..., 0:n_dims], scale=1.0), reinterpreted_batch_ndims=1
             )
 
-        return make_dist_fn
+        else:
+
+            return lambda t: tfd.Independent(
+                tfd.Normal(
+                    loc=t[..., 0:n_dims],
+                    scale=1e-5
+                    + tf.nn.softplus(
+                        tf.math.log(tf.math.expm1(1.0)) + t[..., n_dims : 2 * n_dims]
+                    ),
+                ),
+                reinterpreted_batch_ndims=1,
+            )
 
     def get_total_param_size(self):
         return self.n_dims if self.uniform_scale else 2 * self.n_dims
