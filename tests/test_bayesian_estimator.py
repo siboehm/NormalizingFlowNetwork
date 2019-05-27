@@ -1,5 +1,6 @@
 import tensorflow as tf
 from tensorflow.python import tf2
+import pytest
 
 if not tf2.enabled():
     import tensorflow.compat.v2 as tf
@@ -13,6 +14,9 @@ tfd = tfp.distributions
 
 import numpy as np
 from BayesianNFEstimator import BayesianNFEstimator
+
+tf.random.set_seed(22)
+np.random.seed(22)
 
 
 def test_dense_layer_generation():
@@ -77,9 +81,8 @@ def test_model_ouput_dims_3d():
     assert output.log_prob([[0.0] * 3]).shape == [10]
 
 
+@pytest.mark.slow
 def test_bayesian_nn_on_gaussian():
-    tf.random.set_seed(22)
-    np.random.seed(22)
     # sinusoidal data with heteroscedastic noise
     x_train = np.linspace(-3, 3, 300, dtype=np.float32).reshape((300, 1))
     noise = tfd.MultivariateNormalDiag(
@@ -92,9 +95,11 @@ def test_bayesian_nn_on_gaussian():
         flow_types=tuple(),
         kl_norm_const=x_train.shape[0],
         hidden_sizes=(10,),
+        activation="tanh",
+        learning_rate=0.03,
         trainable_base_dist=True,
     )
-    model.fit(x_train, y_train, epochs=800, verbose=0)
+    model.fit(x_train, y_train, epochs=1000, verbose=0)
 
     x_test = np.linspace(-3, 3, 1000, dtype=np.float32).reshape((1000, 1))
     noise = tfd.MultivariateNormalDiag(
@@ -103,16 +108,17 @@ def test_bayesian_nn_on_gaussian():
     y_test = noise.sample().numpy()
 
     score = 0
-    for _ in range(10):
+    for _ in range(30):
         output = model(x_test)
         draw = (
             tf.reduce_sum(abs(output.prob(y_test) - noise.prob(y_test)), axis=0)
             / 1000.0
         )
         score += draw
-    assert score / 10.0 < 0.62
+    assert score / 30.0 < 0.62
 
 
+@pytest.mark.slow
 def test_bimodal_gaussian():
     tf.random.set_seed(22)
     np.random.seed(22)
@@ -143,7 +149,7 @@ def test_bimodal_gaussian():
 
     model.fit(x_train, y_train, epochs=2000, verbose=0)
 
-    x_test, y_test, pdf = get_data(800)
+    x_test, y_test, pdf = get_data(1000)
 
     score = 0
     for _ in range(30):
@@ -152,4 +158,4 @@ def test_bimodal_gaussian():
             tf.reduce_sum(abs(output.prob(y_test) - pdf.prob(y_test)), axis=0) / 1000.0
         )
         score += draw
-    assert score / 30.0 < 0.15
+    assert score / 30.0 < 0.18

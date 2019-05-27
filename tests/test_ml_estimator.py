@@ -11,6 +11,7 @@ import tensorflow_probability as tfp
 
 tfd = tfp.distributions
 
+import pytest
 import numpy as np
 from MaximumLikelihoodNFEstimator import MaximumLikelihoodNFEstimator
 
@@ -71,8 +72,9 @@ def test_model_ouput_dims_3d():
     assert output.log_prob([[0.0] * 3]).shape == [10]
 
 
+@pytest.mark.slow
 def test_on_gaussian():
-    tf.random.set_seed(22)
+    tf.random.set_random_seed(22)
     np.random.seed(22)
     # sinusoidal data with heteroscedastic noise
     x_train = np.linspace(-3, 3, 300, dtype=np.float32).reshape((300, 1))
@@ -102,8 +104,9 @@ def test_on_gaussian():
     assert score < 0.45
 
 
+@pytest.mark.slow
 def test_bimodal_gaussian():
-    tf.random.set_seed(22)
+    tf.random.set_random_seed(22)
     np.random.seed(22)
 
     def get_data(sample_size=400):
