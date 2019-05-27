@@ -72,7 +72,7 @@ def test_model_ouput_dims_3d():
 
 
 def test_on_gaussian():
-    tf.random.set_random_seed(22)
+    tf.random.set_seed(22)
     np.random.seed(22)
     # sinusoidal data with heteroscedastic noise
     x_train = np.linspace(-3, 3, 300, dtype=np.float32).reshape((300, 1))
@@ -103,7 +103,7 @@ def test_on_gaussian():
 
 
 def test_bimodal_gaussian():
-    tf.random.set_random_seed(22)
+    tf.random.set_seed(22)
     np.random.seed(22)
 
     def get_data(sample_size=400):

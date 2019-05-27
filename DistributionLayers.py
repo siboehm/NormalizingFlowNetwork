@@ -12,43 +12,56 @@ tfd = tfp.distributions
 
 
 class MeanFieldLayer(tfp.layers.DistributionLambda):
-    n_dims, uniform_scale = None, None
+    n_dims, scale = None, None
 
-    def __init__(self, n_dims, uniform_scale=False, dtype=None):
+    def __init__(self, n_dims, scale=None, dtype=None):
         """
         A subclass of Distribution Lambda. A layer that uses it's input to parametrize n_dims-many indepentent normal
         distributions (aka mean field)
+        Requires input size n_dims for fixed scale, 2*n_dims for trainable scale
+        Mean Field also works for scalars
         :param n_dims: Dimension of the distribution that's being output by the Layer
+        :param scale: (float) None if scale should be trainable. If not None, specifies the fixed scale of the
+            independent normals
         """
         self.n_dims = n_dims
-        self.uniform_scale = uniform_scale
-        make_dist_fn = self._get_distribution_fn(n_dims, uniform_scale)
+        self.scale = scale
+        make_dist_fn = self._get_distribution_fn(n_dims, scale)
 
         super().__init__(make_distribution_fn=make_dist_fn, dtype=dtype)
 
     @staticmethod
-    def _get_distribution_fn(n_dims, uniform_scale):
-        if uniform_scale:
+    def _get_distribution_fn(n_dims, scale=None):
+        if scale is None:
 
-            return lambda t: tfd.Independent(
-                tfd.Normal(loc=t[..., 0:n_dims], scale=1.0), reinterpreted_batch_ndims=1
-            )
+            def dist_fn(t):
+                assert t.shape[-1] == 2 * n_dims
+                return tfd.Independent(
+                    tfd.Normal(
+                        loc=t[..., 0:n_dims],
+                        scale=1e-5
+                        + tf.nn.softplus(
+                            tf.math.log(tf.math.expm1(1.0))
+                            + t[..., n_dims : 2 * n_dims]
+                        ),
+                    ),
+                    reinterpreted_batch_ndims=1,
+                )
 
         else:
+            assert scale > 0.0
 
-            return lambda t: tfd.Independent(
-                tfd.Normal(
-                    loc=t[..., 0:n_dims],
-                    scale=1e-5
-                    + tf.nn.softplus(
-                        tf.math.log(tf.math.expm1(1.0)) + t[..., n_dims : 2 * n_dims]
-                    ),
-                ),
-                reinterpreted_batch_ndims=1,
-            )
+            def dist_fn(t):
+                assert t.shape[-1] == n_dims
+                return tfd.Independent(
+                    tfd.Normal(loc=t[..., 0:n_dims], scale=scale),
+                    reinterpreted_batch_ndims=1,
+                )
+
+        return dist_fn
 
     def get_total_param_size(self):
-        return self.n_dims if self.uniform_scale else 2 * self.n_dims
+        return 2 * self.n_dims if self.scale is None else self.n_dims
 
 
 class InverseNormalizingFlowLayer(tfp.layers.DistributionLambda):
@@ -60,6 +73,7 @@ class InverseNormalizingFlowLayer(tfp.layers.DistributionLambda):
         """
         Subclass of a DistributionLambda. A layer that uses it's input to parametrize a normalizing flow
         that transforms a base normal distribution
+        This layer does not work for scalars!
         :param flow_types: Types of flows to use, applied in order from base_dist -> transformed_dist
         :param n_dims: dimension of the underlying distribution being transformed
         :param trainable_base_dist: whether the base normal distribution should have trainable loc and scale diag
@@ -74,14 +88,22 @@ class InverseNormalizingFlowLayer(tfp.layers.DistributionLambda):
         # therefore a function needs to be provided that transforms a distribution into a tensor
         # per default the .sample() function is used, but our reversed flows cannot perform that operation
         convert_ttfn = lambda d: d.log_prob([1.0] * n_dims)
-        make_flow_dist = lambda t: tfd.TransformedDistribution(
-            distribution=self._get_base_dist(t, n_dims, trainable_base_dist),
-            bijector=self._get_bijector(
-                (t[..., 2 * n_dims :] if trainable_base_dist else t), flow_types, n_dims
-            ),
+        make_flow_dist = self._get_distribution_fn(
+            n_dims, flow_types, trainable_base_dist
         )
         super().__init__(
             make_distribution_fn=make_flow_dist, convert_to_tensor_fn=convert_ttfn
+        )
+
+    @staticmethod
+    def _get_distribution_fn(n_dims, flow_types, trainable_base_dist):
+        return lambda t: tfd.TransformedDistribution(
+            distribution=InverseNormalizingFlowLayer._get_base_dist(
+                t, n_dims, trainable_base_dist
+            ),
+            bijector=InverseNormalizingFlowLayer._get_bijector(
+                (t[..., 2 * n_dims :] if trainable_base_dist else t), flow_types, n_dims
+            ),
         )
 
     def get_total_param_size(self):
@@ -120,4 +142,5 @@ class InverseNormalizingFlowLayer(tfp.layers.DistributionLambda):
                 scale_diag=tf.math.softplus(0.05 * t[..., n_dims : 2 * n_dims]),
             )
         else:
-            return tfd.MultivariateNormalDiag(loc=tf.zeros_like(t[..., 0:1]))
+            # we still need to know the batch size, therefore we need t for reference
+            return tfd.MultivariateNormalDiag(loc=tf.zeros_like(t[..., 0:n_dims]))

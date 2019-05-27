@@ -8,9 +8,8 @@ if not tf2.enabled():
     tf.enable_v2_behavior()
     assert tf2.enabled()
 
-from DistributionLayers import InverseNormalizingFlowLayer, MeanFieldLayer
-
 tfd = tfp.distributions
+from DistributionLayers import InverseNormalizingFlowLayer, MeanFieldLayer
 
 
 class BayesianNFEstimator(tf.keras.Sequential):
@@ -19,9 +18,10 @@ class BayesianNFEstimator(tf.keras.Sequential):
         n_dims,
         kl_norm_const,
         flow_types=("radial", "radial"),
-        hidden_sizes=(16, 16),
+        hidden_sizes=(10,),
         trainable_base_dist=True,
         activation="relu",
+        learning_rate=2e-2,
         trainable_prior=False,
     ):
         posterior = self._get_posterior_fn()
@@ -44,7 +44,8 @@ class BayesianNFEstimator(tf.keras.Sequential):
 
         negative_log_likelihood = lambda y, p_y: -p_y.log_prob(y)
         self.compile(
-            optimizer=tf.compat.v2.optimizers.Adam(0.03), loss=negative_log_likelihood
+            optimizer=tf.compat.v2.optimizers.Adam(learning_rate),
+            loss=negative_log_likelihood,
         )
 
     @staticmethod
@@ -52,8 +53,8 @@ class BayesianNFEstimator(tf.keras.Sequential):
         def prior_fn(kernel_size, bias_size=0, dtype=None):
             size = kernel_size + bias_size
             layers = [
-                tfp.layers.VariableLayer(2 * size, dtype=dtype, trainable=trainable),
-                MeanFieldLayer(size, uniform_scale=False, dtype=dtype),
+                tfp.layers.VariableLayer(size, dtype=dtype, trainable=trainable),
+                MeanFieldLayer(size, scale=10.0, dtype=dtype),
             ]
             return tf.keras.Sequential(layers)
 
@@ -65,7 +66,7 @@ class BayesianNFEstimator(tf.keras.Sequential):
             size = kernel_size + bias_size
             layers = [
                 tfp.layers.VariableLayer(2 * size, dtype=dtype, trainable=True),
-                MeanFieldLayer(size, uniform_scale=False, dtype=dtype),
+                MeanFieldLayer(size, scale=None, dtype=dtype),
             ]
             return tf.keras.Sequential(layers)
 

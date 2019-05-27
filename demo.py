@@ -18,19 +18,22 @@ from plotting import plot_dist, plot_affine_transformed_dist
 
 tfd = tfp.distributions
 tf.random.set_seed(22)
+np.random.seed(22)
+
 
 # x_train, y_train = gen_trippe_hetero_data(
-#     1, n_pts=400, heteroscedastic=True, bimodal=True
+#   1, n_pts=400, heteroscedastic=True, bimodal=True
 # )
 x_train, y_train = gen_cosine_noise_data(300, noise_std=0.3, heterosced_noise=0.5)
 plt.scatter(x_train, y_train)
 plt.show()
 
+
 model = BayesianNFEstimator(
     n_dims=1,
     kl_norm_const=x_train.shape[0],
-    flow_types=("radial", "radial"),
-    hidden_sizes=(16,),
+    flow_types=("radial",),
+    hidden_sizes=(10,),
     trainable_base_dist=True,
     activation="tanh",
     trainable_prior=False,
@@ -43,14 +46,9 @@ model = BayesianNFEstimator(
 # )
 
 model.fit(x_train, y_train, epochs=2000, verbose=2)
+
 x_swoop = np.linspace(-4, 4, num=100).reshape((100, 1))
-result_dist = model(x_swoop)
-plot_dist(x_swoop, dist=result_dist, y_num=100, y_range=[-6, 6])
-result_dist = model(x_swoop)
-plt.show()
-plot_dist(x_swoop, dist=result_dist, y_num=100, y_range=[-6, 6])
-result_dist = model(x_swoop)
-plt.show()
-plot_dist(x_swoop, dist=result_dist, y_num=100, y_range=[-6, 6])
-# plot_affine_transformed_dist(x_swoop, result_dist)
-plt.show()
+for _ in range(4):
+    result_dist = model(x_swoop)
+    plot_dist(x_swoop, dist=result_dist, y_num=100, y_range=[-6, 6])
+    plt.show()
