@@ -24,13 +24,14 @@ class BayesianNFEstimator(tf.keras.Sequential):
         learning_rate=2e-2,
         trainable_prior=False,
     ):
-        posterior = self._get_posterior_fn()
-        prior = self._get_prior_fn(trainable_prior)
         dist_layer = InverseNormalizingFlowLayer(
             flow_types=flow_types,
             n_dims=n_dims,
             trainable_base_dist=trainable_base_dist,
         )
+
+        posterior = self._get_posterior_fn()
+        prior = self._get_prior_fn(trainable_prior)
         dense_layers = self._get_dense_layers(
             hidden_sizes=hidden_sizes,
             output_size=dist_layer.get_total_param_size(),
@@ -53,8 +54,10 @@ class BayesianNFEstimator(tf.keras.Sequential):
         def prior_fn(kernel_size, bias_size=0, dtype=None):
             size = kernel_size + bias_size
             layers = [
-                tfp.layers.VariableLayer(size, dtype=dtype, trainable=trainable),
-                MeanFieldLayer(size, scale=10.0, dtype=dtype),
+                tfp.layers.VariableLayer(
+                    shape=size, initializer="zeros", dtype=dtype, trainable=trainable
+                ),
+                MeanFieldLayer(size, scale=1.0, dtype=dtype),
             ]
             return tf.keras.Sequential(layers)
 
@@ -65,7 +68,9 @@ class BayesianNFEstimator(tf.keras.Sequential):
         def posterior_fn(kernel_size, bias_size=0, dtype=None):
             size = kernel_size + bias_size
             layers = [
-                tfp.layers.VariableLayer(2 * size, dtype=dtype, trainable=True),
+                tfp.layers.VariableLayer(
+                    2 * size, initializer="normal", dtype=dtype, trainable=True
+                ),
                 MeanFieldLayer(size, scale=None, dtype=dtype),
             ]
             return tf.keras.Sequential(layers)
