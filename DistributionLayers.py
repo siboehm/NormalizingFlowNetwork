@@ -75,9 +75,7 @@ class InverseNormalizingFlowLayer(tfp.layers.DistributionLambda):
         # per default the .sample() function is used, but our reversed flows cannot perform that operation
         convert_ttfn = lambda d: d.log_prob([1.0] * n_dims)
         make_flow_dist = lambda t: tfd.TransformedDistribution(
-            distribution=self._get_base_dist(
-                (t[..., 0 : 2 * n_dims] if trainable_base_dist else None), n_dims
-            ),
+            distribution=self._get_base_dist(t, n_dims, trainable_base_dist),
             bijector=self._get_bijector(
                 (t[..., 2 * n_dims :] if trainable_base_dist else t), flow_types, n_dims
             ),
@@ -115,14 +113,11 @@ class InverseNormalizingFlowLayer(tfp.layers.DistributionLambda):
         return tfp.bijectors.Chain(chain)
 
     @staticmethod
-    def _get_base_dist(t, n_dims):
-        if t is None:
-            return tfd.MultivariateNormalDiag(
-                loc=[[0.0] * n_dims], scale_diag=[[1.0] * n_dims]
-            )
-        else:
-            assert t.shape[-1] == 2 * n_dims
+    def _get_base_dist(t, n_dims, trainable):
+        if trainable:
             return tfd.MultivariateNormalDiag(
                 loc=t[..., 0:n_dims],
                 scale_diag=tf.math.softplus(0.05 * t[..., n_dims : 2 * n_dims]),
             )
+        else:
+            return tfd.MultivariateNormalDiag(loc=tf.zeros_like(t[..., 0:1]))

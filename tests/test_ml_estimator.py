@@ -13,12 +13,62 @@ tfd = tfp.distributions
 
 import numpy as np
 from MaximumLikelihoodNFEstimator import MaximumLikelihoodNFEstimator
-from BayesianNFEstimator import BayesianNFEstimator
 
 
 def test_dense_layer_generation():
     layers = MaximumLikelihoodNFEstimator._get_dense_layers((2, 2, 2), 2)
     assert len(layers) == 4
+
+
+def test_model_output_dims_1d():
+    x_train = np.linspace(-1, 1, 10).reshape((10, 1))
+    y_train = np.linspace(-1, 1, 10).reshape((10, 1))
+
+    m1 = MaximumLikelihoodNFEstimator(
+        1,
+        flow_types=("radial", "affine", "planar"),
+        hidden_sizes=(16, 16),
+        trainable_base_dist=False,
+    )
+    m1.fit(x_train, y_train, epochs=1, verbose=0)
+    output = m1(x_train)
+    assert isinstance(output, tfd.TransformedDistribution)
+    assert output.event_shape == [1]
+    assert output.batch_shape == [10]
+    assert output.log_prob([[0.0]]).shape == [10]
+
+
+def test_model_output_dims_1d_2():
+    x_train = np.linspace(-1, 1, 10).reshape((10, 1))
+    y_train = np.linspace(-1, 1, 10).reshape((10, 1))
+
+    m1 = MaximumLikelihoodNFEstimator(
+        1, flow_types=tuple(), hidden_sizes=(16, 16), trainable_base_dist=True
+    )
+    m1.fit(x_train, y_train, epochs=1, verbose=0)
+    output = m1(x_train)
+    assert isinstance(output, tfd.TransformedDistribution)
+    assert output.event_shape == [1]
+    assert output.batch_shape == [10]
+    assert output.log_prob([[0.0]]).shape == [10]
+
+
+def test_model_ouput_dims_3d():
+    x_train = np.linspace([[-1]] * 3, [[1]] * 3, 10).reshape((10, 3))
+    y_train = np.linspace([[-1]] * 3, [[1]] * 3, 10).reshape((10, 3))
+
+    m1 = MaximumLikelihoodNFEstimator(
+        3,
+        flow_types=("radial", "affine", "planar"),
+        hidden_sizes=(16, 16),
+        trainable_base_dist=True,
+    )
+    m1.fit(x_train, y_train, epochs=1, verbose=0)
+    output = m1(x_train)
+    assert isinstance(output, tfd.TransformedDistribution)
+    assert output.event_shape == [3]
+    assert output.batch_shape == [10]
+    assert output.log_prob([[0.0] * 3]).shape == [10]
 
 
 def test_on_gaussian():

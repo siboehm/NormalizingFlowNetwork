@@ -21,7 +21,6 @@ class MaximumLikelihoodNFEstimator(tf.keras.Sequential):
         trainable_base_dist=True,
         activation="relu",
     ):
-        assert type(hidden_sizes) == tuple
         dist_layer = InverseNormalizingFlowLayer(
             flow_types=flow_types,
             n_dims=n_dims,
@@ -48,6 +47,7 @@ class MaximumLikelihoodNFEstimator(tf.keras.Sequential):
 
     @staticmethod
     def _get_dense_layers(hidden_sizes, output_size, activation="relu"):
+        assert type(hidden_sizes) == tuple
         hidden = [
             tf.keras.layers.Dense(size, activation=activation) for size in hidden_sizes
         ]
