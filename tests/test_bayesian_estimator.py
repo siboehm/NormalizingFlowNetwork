@@ -20,8 +20,23 @@ np.random.seed(22)
 
 
 def test_dense_layer_generation():
-    layers = BayesianNFEstimator._get_dense_layers((2, 2, 2), 2, None, None, 1)
+    layers = BayesianNFEstimator._get_dense_layers(
+        hidden_sizes=(2, 2, 2),
+        output_size=2,
+        posterior=None,
+        prior=None,
+        x_noise_std=0.0,
+    )
     assert len(layers) == 4
+
+    layers = BayesianNFEstimator._get_dense_layers(
+        hidden_sizes=(2, 2, 2),
+        output_size=2,
+        posterior=None,
+        prior=None,
+        x_noise_std=1.0,
+    )
+    assert len(layers) == 5
 
 
 def test_model_output_dims_1d():
@@ -81,6 +96,33 @@ def test_model_ouput_dims_3d():
     assert output.log_prob([[0.0] * 3]).shape == [10]
 
 
+def test_y_noise_reg():
+    x_train = np.linspace([[-1]] * 3, [[1]] * 3, 10).reshape((10, 3))
+    y_train = np.linspace([[-1]] * 3, [[1]] * 3, 10).reshape((10, 3))
+
+    noise = BayesianNFEstimator(
+        1,
+        flow_types=("planar", "radial", "affine"),
+        hidden_sizes=(16, 16),
+        trainable_base_dist=True,
+        x_noise_std=1.0,
+        y_noise_std=1.0,
+    )
+    noise.fit(x_train, y_train, epochs=10, verbose=0)
+
+    # loss should not include randomness during evaluation
+    loss1 = noise.loss([0.0], tfp.distributions.Normal(loc=0.0, scale=1.0)).numpy()
+    loss2 = noise.loss([0.0], tfp.distributions.Normal(loc=0.0, scale=1.0)).numpy()
+    assert loss1 == loss2
+
+    # loss should include randomness during learning
+    tf.keras.backend.set_learning_phase(1)
+    loss1 = noise.loss([0.0], tfp.distributions.Normal(loc=0.0, scale=1.0)).numpy()
+    loss2 = noise.loss([0.0], tfp.distributions.Normal(loc=0.0, scale=1.0)).numpy()
+    assert not loss1 == loss2
+    tf.keras.backend.set_learning_phase(0)
+
+
 @pytest.mark.slow
 def test_bayesian_nn_on_gaussian():
     # sinusoidal data with heteroscedastic noise
@@ -97,6 +139,8 @@ def test_bayesian_nn_on_gaussian():
         hidden_sizes=(10,),
         activation="tanh",
         learning_rate=0.03,
+        x_noise_std=0.1,
+        y_noise_std=0.1,
         trainable_base_dist=True,
     )
     model.fit(x_train, y_train, epochs=1000, verbose=0)
@@ -115,7 +159,7 @@ def test_bayesian_nn_on_gaussian():
             / 1000.0
         )
         score += draw
-    assert score / 30.0 < 0.62
+    assert score / 30.0 < 0.68
 
 
 @pytest.mark.slow

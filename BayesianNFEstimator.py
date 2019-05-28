@@ -17,10 +17,13 @@ class BayesianNFEstimator(tf.keras.Sequential):
         self,
         n_dims,
         kl_weight_scale=1.0,
+        kl_use_exact=False,
         flow_types=("radial", "radial"),
         hidden_sizes=(10,),
         trainable_base_dist=True,
         activation="tanh",
+        x_noise_std=0.0,
+        y_noise_std=0.0,
         learning_rate=2e-2,
         trainable_prior=False,
     ):
@@ -31,6 +34,8 @@ class BayesianNFEstimator(tf.keras.Sequential):
         :param flow_types: tuple of flows to use
         :param hidden_sizes: size and depth of net
         :param trainable_base_dist: whether to train the base normal dist
+        :param x_noise_std Stddev of zero centered gaussian noise added to x input
+        :param y_noise_std Stddev of zero centered gaussian noise added to y input
         :param trainable_prior: empirical bayes
         """
         dist_layer = InverseNormalizingFlowLayer(
@@ -47,16 +52,26 @@ class BayesianNFEstimator(tf.keras.Sequential):
             posterior=posterior,
             prior=prior,
             kl_weight_scale=kl_weight_scale,
+            kl_use_exact=kl_use_exact,
+            x_noise_std=x_noise_std,
             activation=activation,
         )
 
         super().__init__(dense_layers + [dist_layer])
 
-        negative_log_likelihood = lambda y, p_y: -p_y.log_prob(y)
         self.compile(
             optimizer=tf.compat.v2.optimizers.Adam(learning_rate),
-            loss=negative_log_likelihood,
+            loss=self._get_neg_log_likelihood(y_noise_std),
         )
+
+    @staticmethod
+    def _get_neg_log_likelihood(y_noise_std):
+        if y_noise_std:
+            y_noise_layer = tf.keras.layers.GaussianNoise(y_noise_std)
+            # noise will be switched on during training and switched off otherwise automatically
+            return lambda y, p_y: -p_y.log_prob(y_noise_layer(y))
+        else:
+            return lambda y, p_y: -p_y.log_prob(y)
 
     @staticmethod
     def _get_prior_fn(trainable=False):
@@ -88,24 +103,38 @@ class BayesianNFEstimator(tf.keras.Sequential):
 
     @staticmethod
     def _get_dense_layers(
-        hidden_sizes, output_size, posterior, prior, kl_weight_scale, activation="relu"
+        hidden_sizes,
+        output_size,
+        posterior,
+        prior,
+        kl_weight_scale=1.0,
+        kl_use_exact=False,
+        x_noise_std=0.0,
+        activation="relu",
     ):
         assert type(hidden_sizes) == tuple
+        assert kl_weight_scale <= 1.0
+        assert x_noise_std >= 0.0
+        noise_reg = [tf.keras.layers.GaussianNoise(x_noise_std)] if x_noise_std else []
         hidden = [
             tfp.layers.DenseVariational(
                 units=size,
                 make_posterior_fn=posterior,
                 make_prior_fn=prior,
                 kl_weight=kl_weight_scale,
+                kl_use_exact=kl_use_exact,
                 activation=activation,
             )
             for size in hidden_sizes
         ]
-        output = tfp.layers.DenseVariational(
-            units=output_size,
-            make_posterior_fn=posterior,
-            make_prior_fn=prior,
-            kl_weight=kl_weight_scale,
-            activation="linear",
-        )
-        return hidden + [output]
+        output = [
+            tfp.layers.DenseVariational(
+                units=output_size,
+                make_posterior_fn=posterior,
+                make_prior_fn=prior,
+                kl_weight=kl_weight_scale,
+                kl_use_exact=kl_use_exact,
+                activation="linear",
+            )
+        ]
+        return noise_reg + hidden + output

@@ -20,6 +20,11 @@ def test_dense_layer_generation():
     layers = MaximumLikelihoodNFEstimator._get_dense_layers((2, 2, 2), 2)
     assert len(layers) == 4
 
+    layers = MaximumLikelihoodNFEstimator._get_dense_layers(
+        (2, 2, 2), 2, x_noise_std=1.0
+    )
+    assert len(layers) == 5
+
 
 def test_model_output_dims_1d():
     x_train = np.linspace(-1, 1, 10).reshape((10, 1))
@@ -70,6 +75,75 @@ def test_model_ouput_dims_3d():
     assert output.event_shape == [3]
     assert output.batch_shape == [10]
     assert output.log_prob([[0.0] * 3]).shape == [10]
+
+
+@pytest.mark.slow
+def test_x_noise_reg():
+    x_train = np.linspace(-3, 3, 300, dtype=np.float32).reshape((300, 1))
+    noise = tfd.MultivariateNormalDiag(
+        loc=5 * tf.math.sin(2 * x_train), scale_diag=abs(x_train)
+    )
+    y_train = noise.sample().numpy()
+
+    little_noise = MaximumLikelihoodNFEstimator(
+        1,
+        flow_types=("radial", "radial"),
+        hidden_sizes=(16, 16),
+        x_noise_std=0.1,
+        y_noise_std=0.0,
+        trainable_base_dist=True,
+    )
+
+    little_noise.fit(x_train, y_train, epochs=700, verbose=0)
+
+    x_test = np.linspace(-3, 3, 300, dtype=np.float32).reshape((300, 1))
+    noise = tfd.MultivariateNormalDiag(
+        loc=5 * tf.math.sin(2 * x_train), scale_diag=abs(x_train)
+    )
+    y_test = noise.sample().numpy()
+    out1 = little_noise.evaluate(x_test, y_test)
+    out2 = little_noise.evaluate(x_test, y_test)
+    assert out1 == out2
+
+    too_much_noise = MaximumLikelihoodNFEstimator(
+        1,
+        flow_types=("radial", "radial"),
+        hidden_sizes=(16, 16),
+        x_noise_std=10.0,
+        y_noise_std=0.0,
+        trainable_base_dist=True,
+    )
+
+    too_much_noise.fit(x_train, y_train, epochs=700, verbose=0)
+    out3 = too_much_noise.evaluate(x_test, y_test)
+    assert out3 > (out2 + 0.8)
+
+
+def test_y_noise_reg():
+    x_train = np.linspace([[-1]] * 3, [[1]] * 3, 10).reshape((10, 3))
+    y_train = np.linspace([[-1]] * 3, [[1]] * 3, 10).reshape((10, 3))
+
+    noise = MaximumLikelihoodNFEstimator(
+        1,
+        flow_types=("planar", "radial", "affine"),
+        hidden_sizes=(16, 16),
+        trainable_base_dist=True,
+        x_noise_std=1.0,
+        y_noise_std=1.0,
+    )
+    noise.fit(x_train, y_train, epochs=10, verbose=0)
+
+    # loss should not include randomness during evaluation
+    loss1 = noise.loss([0.0], tfp.distributions.Normal(loc=0.0, scale=1.0)).numpy()
+    loss2 = noise.loss([0.0], tfp.distributions.Normal(loc=0.0, scale=1.0)).numpy()
+    assert loss1 == loss2
+
+    # loss should include randomness during learning
+    tf.keras.backend.set_learning_phase(1)
+    loss1 = noise.loss([0.0], tfp.distributions.Normal(loc=0.0, scale=1.0)).numpy()
+    loss2 = noise.loss([0.0], tfp.distributions.Normal(loc=0.0, scale=1.0)).numpy()
+    assert not loss1 == loss2
+    tf.keras.backend.set_learning_phase(0)
 
 
 @pytest.mark.slow

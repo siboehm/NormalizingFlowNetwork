@@ -19,6 +19,9 @@ class MaximumLikelihoodNFEstimator(tf.keras.Sequential):
         flow_types=("radial", "radial"),
         hidden_sizes=(16, 16),
         trainable_base_dist=True,
+        x_noise_std=0.0,
+        y_noise_std=0.0,
+        learning_rate=3e-3,
         activation="relu",
     ):
         dist_layer = InverseNormalizingFlowLayer(
@@ -29,27 +32,34 @@ class MaximumLikelihoodNFEstimator(tf.keras.Sequential):
         dense_layers = self._get_dense_layers(
             hidden_sizes=hidden_sizes,
             output_size=dist_layer.get_total_param_size(),
+            x_noise_std=x_noise_std,
             activation=activation,
         )
 
         super().__init__(dense_layers + [dist_layer])
 
-        negative_log_likelihood = lambda y, p_y: -p_y.log_prob(y)
         self.compile(
-            optimizer=tf.compat.v2.optimizers.Adam(0.01), loss=negative_log_likelihood
+            optimizer=tf.compat.v2.optimizers.Adam(learning_rate),
+            loss=self._get_neg_log_likelihood(y_noise_std),
         )
 
-    def score(self, x_test, y_test):
-        assert x_test.shape[0] == y_test.shape[0]
-
-        output = self(x_test)
-        return tf.reduce_sum(output.log_prob(y_test), axis=0)
+    @staticmethod
+    def _get_neg_log_likelihood(y_noise_std):
+        if y_noise_std:
+            y_noise_layer = tf.keras.layers.GaussianNoise(y_noise_std)
+            return lambda y, p_y: -p_y.log_prob(y_noise_layer(y))
+        else:
+            return lambda y, p_y: -p_y.log_prob(y)
 
     @staticmethod
-    def _get_dense_layers(hidden_sizes, output_size, activation="relu"):
+    def _get_dense_layers(
+        hidden_sizes, output_size, x_noise_std=0.0, activation="relu"
+    ):
         assert type(hidden_sizes) == tuple
+        assert x_noise_std >= 0.0
+        noise_reg = [tf.keras.layers.GaussianNoise(x_noise_std)] if x_noise_std else []
         hidden = [
             tf.keras.layers.Dense(size, activation=activation) for size in hidden_sizes
         ]
-        output = tf.keras.layers.Dense(output_size, activation="linear")
-        return hidden + [output]
+        output = [tf.keras.layers.Dense(output_size, activation="linear")]
+        return noise_reg + hidden + output
