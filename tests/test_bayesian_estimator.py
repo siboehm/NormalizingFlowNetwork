@@ -30,7 +30,7 @@ def test_model_output_dims_1d():
 
     m1 = BayesianNFEstimator(
         1,
-        kl_norm_const=x_train.shape[0],
+        kl_weight_scale=1.0 / x_train.shape[0],
         flow_types=("radial", "affine", "planar"),
         hidden_sizes=(16, 16),
         trainable_base_dist=False,
@@ -49,7 +49,7 @@ def test_model_output_dims_1d_2():
 
     m1 = BayesianNFEstimator(
         1,
-        kl_norm_const=x_train.shape[0],
+        kl_weight_scale=1.0 / x_train.shape[0],
         flow_types=tuple(),
         hidden_sizes=(16, 16),
         trainable_base_dist=True,
@@ -68,7 +68,7 @@ def test_model_ouput_dims_3d():
 
     m1 = BayesianNFEstimator(
         3,
-        kl_norm_const=x_train.shape[0],
+        kl_weight_scale=1.0 / x_train.shape[0],
         flow_types=("radial", "affine", "planar"),
         hidden_sizes=(16, 16),
         trainable_base_dist=True,
@@ -93,7 +93,7 @@ def test_bayesian_nn_on_gaussian():
     model = BayesianNFEstimator(
         1,
         flow_types=tuple(),
-        kl_norm_const=x_train.shape[0],
+        kl_weight_scale=1.0 / x_train.shape[0],
         hidden_sizes=(10,),
         activation="tanh",
         learning_rate=0.03,
@@ -142,7 +142,7 @@ def test_bimodal_gaussian():
         flow_types=("radial",),
         learning_rate=0.02,
         hidden_sizes=(10,),
-        kl_norm_const=x_train.shape[0],
+        kl_weight_scale=1.0 / x_train.shape[0],
         trainable_base_dist=True,
         activation="tanh",
     )

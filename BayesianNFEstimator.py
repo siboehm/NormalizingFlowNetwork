@@ -16,14 +16,23 @@ class BayesianNFEstimator(tf.keras.Sequential):
     def __init__(
         self,
         n_dims,
-        kl_norm_const,
+        kl_weight_scale=1.0,
         flow_types=("radial", "radial"),
         hidden_sizes=(10,),
         trainable_base_dist=True,
-        activation="relu",
+        activation="tanh",
         learning_rate=2e-2,
         trainable_prior=False,
     ):
+        """
+        A bayesian net parametrizing a normalizing flow distribution
+        :param n_dims: The dimension of the output distribution
+        :param kl_weight_scale: Scales how much KL(posterior|prior) influence the loss
+        :param flow_types: tuple of flows to use
+        :param hidden_sizes: size and depth of net
+        :param trainable_base_dist: whether to train the base normal dist
+        :param trainable_prior: empirical bayes
+        """
         dist_layer = InverseNormalizingFlowLayer(
             flow_types=flow_types,
             n_dims=n_dims,
@@ -37,7 +46,7 @@ class BayesianNFEstimator(tf.keras.Sequential):
             output_size=dist_layer.get_total_param_size(),
             posterior=posterior,
             prior=prior,
-            kl_norm_const=kl_norm_const,
+            kl_weight_scale=kl_weight_scale,
             activation=activation,
         )
 
@@ -79,7 +88,7 @@ class BayesianNFEstimator(tf.keras.Sequential):
 
     @staticmethod
     def _get_dense_layers(
-        hidden_sizes, output_size, posterior, prior, kl_norm_const, activation="relu"
+        hidden_sizes, output_size, posterior, prior, kl_weight_scale, activation="relu"
     ):
         assert type(hidden_sizes) == tuple
         hidden = [
@@ -87,7 +96,7 @@ class BayesianNFEstimator(tf.keras.Sequential):
                 units=size,
                 make_posterior_fn=posterior,
                 make_prior_fn=prior,
-                kl_weight=1 / kl_norm_const,
+                kl_weight=kl_weight_scale,
                 activation=activation,
             )
             for size in hidden_sizes
@@ -96,7 +105,7 @@ class BayesianNFEstimator(tf.keras.Sequential):
             units=output_size,
             make_posterior_fn=posterior,
             make_prior_fn=prior,
-            kl_weight=1 / kl_norm_const,
+            kl_weight=kl_weight_scale,
             activation="linear",
         )
         return hidden + [output]

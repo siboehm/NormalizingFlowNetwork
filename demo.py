@@ -31,7 +31,7 @@ plt.show()
 
 model = BayesianNFEstimator(
     n_dims=1,
-    kl_norm_const=x_train.shape[0],
+    kl_weight_scale=1./x_train.shape[0],
     flow_types=("radial",),
     hidden_sizes=(10,),
     trainable_base_dist=True,
