@@ -10,9 +10,10 @@ if not tf2.enabled():
 
 tfd = tfp.distributions
 from DistributionLayers import InverseNormalizingFlowLayer, MeanFieldLayer
+from BaseNFEstimator import BaseNFEstimator
 
 
-class BayesianNFEstimator(tf.keras.Sequential):
+class BayesianNFEstimator(BaseNFEstimator):
     def __init__(
         self,
         n_dims,
@@ -65,15 +66,6 @@ class BayesianNFEstimator(tf.keras.Sequential):
         )
 
     @staticmethod
-    def _get_neg_log_likelihood(y_noise_std):
-        if y_noise_std:
-            y_noise_layer = tf.keras.layers.GaussianNoise(y_noise_std)
-            # noise will be switched on during training and switched off otherwise automatically
-            return lambda y, p_y: -p_y.log_prob(y_noise_layer(y))
-        else:
-            return lambda y, p_y: -p_y.log_prob(y)
-
-    @staticmethod
     def _get_prior_fn(trainable=False):
         def prior_fn(kernel_size, bias_size=0, dtype=None):
             size = kernel_size + bias_size
@@ -101,8 +93,8 @@ class BayesianNFEstimator(tf.keras.Sequential):
 
         return posterior_fn
 
-    @staticmethod
     def _get_dense_layers(
+        self,
         hidden_sizes,
         output_size,
         posterior,
@@ -115,6 +107,11 @@ class BayesianNFEstimator(tf.keras.Sequential):
         assert type(hidden_sizes) == tuple
         assert kl_weight_scale <= 1.0
         assert x_noise_std >= 0.0
+
+        # these values are assigned once fit is called
+        normalization = [
+            tf.keras.layers.Lambda(lambda x: (x - self.x_mean) / (self.x_std + 1e-8))
+        ]
         noise_reg = [tf.keras.layers.GaussianNoise(x_noise_std)] if x_noise_std else []
         hidden = [
             tfp.layers.DenseVariational(
@@ -137,4 +134,4 @@ class BayesianNFEstimator(tf.keras.Sequential):
                 activation="linear",
             )
         ]
-        return noise_reg + hidden + output
+        return normalization + noise_reg + hidden + output

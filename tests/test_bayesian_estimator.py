@@ -20,28 +20,28 @@ np.random.seed(22)
 
 
 def test_dense_layer_generation():
-    layers = BayesianNFEstimator._get_dense_layers(
+    layers = BayesianNFEstimator(1)._get_dense_layers(
         hidden_sizes=(2, 2, 2),
         output_size=2,
         posterior=None,
         prior=None,
         x_noise_std=0.0,
     )
-    assert len(layers) == 4
+    assert len(layers) == 5
 
-    layers = BayesianNFEstimator._get_dense_layers(
+    layers = BayesianNFEstimator(1)._get_dense_layers(
         hidden_sizes=(2, 2, 2),
         output_size=2,
         posterior=None,
         prior=None,
         x_noise_std=1.0,
     )
-    assert len(layers) == 5
+    assert len(layers) == 6
 
 
 def test_model_output_dims_1d():
-    x_train = np.linspace(-1, 1, 10).reshape((10, 1))
-    y_train = np.linspace(-1, 1, 10).reshape((10, 1))
+    x_train = np.linspace(-1, 1, 10, dtype=np.float32).reshape((10, 1))
+    y_train = np.linspace(-1, 1, 10, dtype=np.float32).reshape((10, 1))
 
     m1 = BayesianNFEstimator(
         1,
@@ -56,6 +56,9 @@ def test_model_output_dims_1d():
     assert output.event_shape == [1]
     assert output.batch_shape == [10]
     assert output.log_prob([[0.0]]).shape == [10]
+
+    pdf = m1.pdf(x_train, y_train)
+    assert pdf.shape == [10]
 
 
 def test_model_output_dims_1d_2():
@@ -101,7 +104,7 @@ def test_y_noise_reg():
     y_train = np.linspace([[-1]] * 3, [[1]] * 3, 10).reshape((10, 3))
 
     noise = BayesianNFEstimator(
-        1,
+        3,
         flow_types=("planar", "radial", "affine"),
         hidden_sizes=(16, 16),
         trainable_base_dist=True,
@@ -113,13 +116,13 @@ def test_y_noise_reg():
     # loss should not include randomness during evaluation
     loss1 = noise.loss([0.0], tfp.distributions.Normal(loc=0.0, scale=1.0)).numpy()
     loss2 = noise.loss([0.0], tfp.distributions.Normal(loc=0.0, scale=1.0)).numpy()
-    assert loss1 == loss2
+    assert all(loss1 == loss2)
 
     # loss should include randomness during learning
     tf.keras.backend.set_learning_phase(1)
     loss1 = noise.loss([0.0], tfp.distributions.Normal(loc=0.0, scale=1.0)).numpy()
     loss2 = noise.loss([0.0], tfp.distributions.Normal(loc=0.0, scale=1.0)).numpy()
-    assert not loss1 == loss2
+    assert not any(loss1 == loss2)
     tf.keras.backend.set_learning_phase(0)
 
 
@@ -153,9 +156,8 @@ def test_bayesian_nn_on_gaussian():
 
     score = 0
     for _ in range(30):
-        output = model(x_test)
         draw = (
-            tf.reduce_sum(abs(output.prob(y_test) - noise.prob(y_test)), axis=0)
+            tf.reduce_sum(abs(model.pdf(x_test, y_test) - noise.prob(y_test)), axis=0)
             / 1000.0
         )
         score += draw
@@ -197,9 +199,9 @@ def test_bimodal_gaussian():
 
     score = 0
     for _ in range(30):
-        output = model(x_test)
         draw = (
-            tf.reduce_sum(abs(output.prob(y_test) - pdf.prob(y_test)), axis=0) / 1000.0
+            tf.reduce_sum(abs(model.pdf(x_test, y_test) - pdf.prob(y_test)), axis=0)
+            / 1000.0
         )
         score += draw
-    assert score / 30.0 < 0.18
+    assert score / 30.0 < 0.21

@@ -17,13 +17,13 @@ from MaximumLikelihoodNFEstimator import MaximumLikelihoodNFEstimator
 
 
 def test_dense_layer_generation():
-    layers = MaximumLikelihoodNFEstimator._get_dense_layers((2, 2, 2), 2)
-    assert len(layers) == 4
+    layers = MaximumLikelihoodNFEstimator(1)._get_dense_layers((2, 2, 2), 2)
+    assert len(layers) == 5
 
-    layers = MaximumLikelihoodNFEstimator._get_dense_layers(
+    layers = MaximumLikelihoodNFEstimator(1)._get_dense_layers(
         (2, 2, 2), 2, x_noise_std=1.0
     )
-    assert len(layers) == 5
+    assert len(layers) == 6
 
 
 def test_model_output_dims_1d():
@@ -79,6 +79,9 @@ def test_model_ouput_dims_3d():
 
 @pytest.mark.slow
 def test_x_noise_reg():
+    tf.random.set_random_seed(22)
+    np.random.seed(22)
+
     x_train = np.linspace(-3, 3, 300, dtype=np.float32).reshape((300, 1))
     noise = tfd.MultivariateNormalDiag(
         loc=5 * tf.math.sin(2 * x_train), scale_diag=abs(x_train)
@@ -101,9 +104,9 @@ def test_x_noise_reg():
         loc=5 * tf.math.sin(2 * x_train), scale_diag=abs(x_train)
     )
     y_test = noise.sample().numpy()
-    out1 = little_noise.evaluate(x_test, y_test)
-    out2 = little_noise.evaluate(x_test, y_test)
-    assert out1 == out2
+    out1 = little_noise.pdf(x_test, y_test).numpy()
+    out2 = little_noise.pdf(x_test, y_test).numpy()
+    assert all(out1 == out2)
 
     too_much_noise = MaximumLikelihoodNFEstimator(
         1,
@@ -115,8 +118,9 @@ def test_x_noise_reg():
     )
 
     too_much_noise.fit(x_train, y_train, epochs=700, verbose=0)
-    out3 = too_much_noise.evaluate(x_test, y_test)
-    assert out3 > (out2 + 0.8)
+    out3_loss = tf.reduce_sum(abs(too_much_noise.pdf(x_test, y_test)))
+    out2_loss = tf.reduce_sum(abs(out2))
+    assert out2_loss > (out3_loss + 0.8)
 
 
 def test_y_noise_reg():
@@ -124,7 +128,7 @@ def test_y_noise_reg():
     y_train = np.linspace([[-1]] * 3, [[1]] * 3, 10).reshape((10, 3))
 
     noise = MaximumLikelihoodNFEstimator(
-        1,
+        3,
         flow_types=("planar", "radial", "affine"),
         hidden_sizes=(16, 16),
         trainable_base_dist=True,
@@ -136,13 +140,13 @@ def test_y_noise_reg():
     # loss should not include randomness during evaluation
     loss1 = noise.loss([0.0], tfp.distributions.Normal(loc=0.0, scale=1.0)).numpy()
     loss2 = noise.loss([0.0], tfp.distributions.Normal(loc=0.0, scale=1.0)).numpy()
-    assert loss1 == loss2
+    assert all(loss1 == loss2)
 
     # loss should include randomness during learning
     tf.keras.backend.set_learning_phase(1)
     loss1 = noise.loss([0.0], tfp.distributions.Normal(loc=0.0, scale=1.0)).numpy()
     loss2 = noise.loss([0.0], tfp.distributions.Normal(loc=0.0, scale=1.0)).numpy()
-    assert not loss1 == loss2
+    assert not any(loss1 == loss2)
     tf.keras.backend.set_learning_phase(0)
 
 
@@ -159,11 +163,11 @@ def test_on_gaussian():
 
     model = MaximumLikelihoodNFEstimator(
         1,
-        flow_types=("radial", "radial", "radial"),
+        flow_types=("radial", "radial"),
         hidden_sizes=(16, 16),
         trainable_base_dist=True,
     )
-    model.fit(x_train, y_train, epochs=700, verbose=0)
+    model.fit(x_train, y_train, epochs=800, verbose=0)
 
     x_test = np.linspace(-3, 3, 1000, dtype=np.float32).reshape((1000, 1))
     noise = tfd.MultivariateNormalDiag(
@@ -171,9 +175,9 @@ def test_on_gaussian():
     )
     y_test = noise.sample().numpy()
 
-    output = model(x_test)
     score = (
-        tf.reduce_sum(abs(output.prob(y_test) - noise.prob(y_test)), axis=0) / 1000.0
+        tf.reduce_sum(abs(model.pdf(x_test, y_test) - noise.prob(y_test)), axis=0)
+        / 1000.0
     )
     assert score < 0.45
 
@@ -208,6 +212,7 @@ def test_bimodal_gaussian():
 
     x_test, y_test, pdf = get_data(800)
 
-    output = model(x_test)
-    score = tf.reduce_sum(abs(output.prob(y_test) - pdf.prob(y_test)), axis=0) / 800.0
+    score = (
+        tf.reduce_sum(abs(model.pdf(x_test, y_test) - pdf.prob(y_test)), axis=0) / 800.0
+    )
     assert score < 0.1
