@@ -9,8 +9,8 @@ if not tf2.enabled():
     assert tf2.enabled()
 
 tfd = tfp.distributions
-from DistributionLayers import InverseNormalizingFlowLayer, MeanFieldLayer
-from BaseNFEstimator import BaseNFEstimator
+from estimators.DistributionLayers import InverseNormalizingFlowLayer, MeanFieldLayer
+from estimators.BaseNFEstimator import BaseNFEstimator
 
 
 class BayesianNFEstimator(BaseNFEstimator):

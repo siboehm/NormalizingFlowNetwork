@@ -9,8 +9,8 @@ if not tf2.enabled():
 import tensorflow_probability as tfp
 
 tfd = tfp.distributions
-from normalizing_flows import FLOWS
-from normalizing_flows import AffineFlow
+from estimators.normalizing_flows import FLOWS
+from estimators.normalizing_flows import AffineFlow
 import pytest
 
 

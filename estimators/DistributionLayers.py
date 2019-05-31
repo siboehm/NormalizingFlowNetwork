@@ -1,7 +1,7 @@
 import tensorflow as tf
 import tensorflow_probability as tfp
 from tensorflow.python import tf2
-from normalizing_flows import FLOWS
+from estimators.normalizing_flows import FLOWS
 
 if not tf2.enabled():
     import tensorflow.compat.v2 as tf

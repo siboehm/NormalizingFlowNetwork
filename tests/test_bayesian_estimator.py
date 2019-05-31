@@ -13,7 +13,7 @@ import tensorflow_probability as tfp
 tfd = tfp.distributions
 
 import numpy as np
-from BayesianNFEstimator import BayesianNFEstimator
+from estimators import BayesianNFEstimator
 
 tf.random.set_seed(22)
 np.random.seed(22)

@@ -11,10 +11,10 @@ if not tf2.enabled():
 import numpy as np
 import matplotlib.pyplot as plt
 from data_gen import gen_trippe_hetero_data, gen_cosine_noise_data
-from MaximumLikelihoodNFEstimator import MaximumLikelihoodNFEstimator
-from BayesianNFEstimator import BayesianNFEstimator
+from estimators import BayesianNFEstimator
+from estimators import MaximumLikelihoodNFEstimator
 
-from plotting import plot_dist, plot_affine_transformed_dist
+from plotting import plot_model
 
 tfd = tfp.distributions
 tf.random.set_seed(22)
@@ -45,10 +45,9 @@ model = BayesianNFEstimator(
 #     trainable_base_dist=False,
 # )
 
-model.fit(x_train, y_train, epochs=2000, verbose=2)
+model.fit(x_train, y_train, epochs=1000, verbose=2)
 
 x_swoop = np.linspace(-4, 4, num=100).reshape((100, 1))
 for _ in range(4):
-    result_dist = model(x_swoop)
-    plot_dist(x_swoop, dist=result_dist, y_num=100, y_range=[-6, 6])
+    plot_model(x_swoop, model, y_num=100, y_range=[-6, 6])
     plt.show()

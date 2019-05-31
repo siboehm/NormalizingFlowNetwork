@@ -9,8 +9,8 @@ if not tf2.enabled():
 
 import pytest
 import tensorflow_probability as tfp
-from DistributionLayers import InverseNormalizingFlowLayer, MeanFieldLayer
-from normalizing_flows import FLOWS
+from estimators.DistributionLayers import InverseNormalizingFlowLayer, MeanFieldLayer
+from estimators.normalizing_flows import FLOWS
 
 tfd = tfp.distributions
 

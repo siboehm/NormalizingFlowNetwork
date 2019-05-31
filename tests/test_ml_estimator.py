@@ -13,7 +13,7 @@ tfd = tfp.distributions
 
 import pytest
 import numpy as np
-from MaximumLikelihoodNFEstimator import MaximumLikelihoodNFEstimator
+from estimators import MaximumLikelihoodNFEstimator
 
 
 def test_dense_layer_generation():
