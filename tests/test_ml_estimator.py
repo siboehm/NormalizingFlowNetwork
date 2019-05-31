@@ -106,6 +106,7 @@ def test_x_noise_reg():
     y_test = noise.sample().numpy()
     out1 = little_noise.pdf(x_test, y_test).numpy()
     out2 = little_noise.pdf(x_test, y_test).numpy()
+    # making sure that the noise regularisation is deactivated in testing mode
     assert all(out1 == out2)
 
     too_much_noise = MaximumLikelihoodNFEstimator(
@@ -118,9 +119,9 @@ def test_x_noise_reg():
     )
 
     too_much_noise.fit(x_train, y_train, epochs=700, verbose=0)
-    out3_loss = tf.reduce_sum(abs(too_much_noise.pdf(x_test, y_test)))
-    out2_loss = tf.reduce_sum(abs(out2))
-    assert out2_loss > (out3_loss + 0.8)
+    little_loss = -tf.reduce_sum(little_noise.pdf(x_test, y_test)) / 700
+    much_loss = -tf.reduce_sum(too_much_noise.pdf(x_test, y_test)) / 700
+    assert little_loss < much_loss
 
 
 def test_y_noise_reg():
