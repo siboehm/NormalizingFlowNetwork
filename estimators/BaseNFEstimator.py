@@ -31,6 +31,12 @@ class BaseNFEstimator(tf.keras.Sequential):
         self.y_std = np.std(y, axis=0, dtype=np.float32)
 
     def _get_neg_log_likelihood(self, y_noise_std):
+        y_input_model = self._get_input_model(y_noise_std)
+        return lambda y, p_y: -p_y.log_prob(y_input_model(y)) + tf.reduce_sum(
+            tf.log(self.y_std)
+        )
+
+    def _get_input_model(self, y_noise_std):
         y_input_model = tf.keras.Sequential()
         # add data normalization layer
         y_input_model.add(
@@ -41,9 +47,7 @@ class BaseNFEstimator(tf.keras.Sequential):
         if y_noise_std:
             # noise will be switched on during training and switched off otherwise automatically
             y_input_model.add(tf.keras.layers.GaussianNoise(y_noise_std))
-        return lambda y, p_y: -p_y.log_prob(y_input_model(y)) + tf.reduce_sum(
-            tf.log(self.y_std)
-        )
+        return y_input_model
 
     def pdf(self, x, y):
         assert x.shape == y.shape

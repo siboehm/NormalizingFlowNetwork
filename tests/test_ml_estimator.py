@@ -113,7 +113,7 @@ def test_x_noise_reg():
         1,
         flow_types=("radial", "radial"),
         hidden_sizes=(16, 16),
-        x_noise_std=10.0,
+        x_noise_std=20.0,
         y_noise_std=0.0,
         trainable_base_dist=True,
     )

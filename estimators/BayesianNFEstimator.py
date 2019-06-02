@@ -1,12 +1,5 @@
 import tensorflow as tf
 import tensorflow_probability as tfp
-from tensorflow.python import tf2
-
-if not tf2.enabled():
-    import tensorflow.compat.v2 as tf
-
-    tf.enable_v2_behavior()
-    assert tf2.enabled()
 
 tfd = tfp.distributions
 from estimators.DistributionLayers import InverseNormalizingFlowLayer, MeanFieldLayer
@@ -18,7 +11,7 @@ class BayesianNFEstimator(BaseNFEstimator):
         self,
         n_dims,
         kl_weight_scale=1.0,
-        kl_use_exact=False,
+        kl_use_exact=True,
         flow_types=("radial", "radial"),
         hidden_sizes=(10,),
         trainable_base_dist=True,
@@ -63,6 +56,34 @@ class BayesianNFEstimator(BaseNFEstimator):
         self.compile(
             optimizer=tf.compat.v2.optimizers.Adam(learning_rate),
             loss=self._get_neg_log_likelihood(y_noise_std),
+        )
+
+    @staticmethod
+    def build_function(
+        n_dims=1,
+        kl_weight_scale=1.0,
+        kl_use_exact=True,
+        flow_types=("radial", "radial"),
+        hidden_sizes=(10,),
+        trainable_base_dist=True,
+        activation="tanh",
+        x_noise_std=0.0,
+        y_noise_std=0.0,
+        learning_rate=2e-2,
+        trainable_prior=False,
+    ):
+        return BayesianNFEstimator(
+            n_dims,
+            kl_weight_scale,
+            kl_use_exact,
+            flow_types,
+            hidden_sizes,
+            trainable_base_dist,
+            activation,
+            x_noise_std,
+            y_noise_std,
+            learning_rate,
+            trainable_prior,
         )
 
     @staticmethod

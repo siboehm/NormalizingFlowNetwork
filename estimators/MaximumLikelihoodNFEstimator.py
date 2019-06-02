@@ -1,12 +1,5 @@
 import tensorflow as tf
 import tensorflow_probability as tfp
-from tensorflow.python import tf2
-
-if not tf2.enabled():
-    import tensorflow.compat.v2 as tf
-
-    tf.enable_v2_behavior()
-    assert tf2.enabled()
 
 tfd = tfp.distributions
 from estimators.DistributionLayers import InverseNormalizingFlowLayer
@@ -42,6 +35,28 @@ class MaximumLikelihoodNFEstimator(BaseNFEstimator):
         self.compile(
             optimizer=tf.compat.v2.optimizers.Adam(learning_rate),
             loss=self._get_neg_log_likelihood(y_noise_std),
+        )
+
+    @staticmethod
+    def build_function(
+        n_dims=1,
+        flow_types=("radial", "radial"),
+        hidden_sizes=(16, 16),
+        trainable_base_dist=True,
+        x_noise_std=0.0,
+        y_noise_std=0.0,
+        learning_rate=3e-3,
+        activation="tanh",
+    ):
+        return MaximumLikelihoodNFEstimator(
+            n_dims,
+            flow_types,
+            hidden_sizes,
+            trainable_base_dist,
+            x_noise_std,
+            y_noise_std,
+            learning_rate,
+            activation,
         )
 
     def _get_dense_layers(
