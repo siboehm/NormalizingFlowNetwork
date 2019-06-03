@@ -1,12 +1,4 @@
 import tensorflow as tf
-from tensorflow.python import tf2
-
-if not tf2.enabled():
-    import tensorflow.compat.v2 as tf
-
-    tf.enable_v2_behavior()
-    assert tf2.enabled()
-
 import tensorflow_probability as tfp
 
 tfd = tfp.distributions
@@ -16,12 +8,13 @@ import numpy as np
 from estimators import MaximumLikelihoodNFEstimator
 
 
-def test_dense_layer_generation():
-    layers = MaximumLikelihoodNFEstimator(1)._get_dense_layers((2, 2, 2), 2)
-    assert len(layers) == 5
+tf.random.set_random_seed(22)
+np.random.seed(22)
 
+
+def test_dense_layer_generation():
     layers = MaximumLikelihoodNFEstimator(1)._get_dense_layers(
-        (2, 2, 2), 2, x_noise_std=1.0
+        hidden_sizes=(2, 2, 2), output_size=2, activation="linear", x_noise_std=0.1
     )
     assert len(layers) == 6
 
@@ -79,54 +72,51 @@ def test_model_ouput_dims_3d():
 
 @pytest.mark.slow
 def test_x_noise_reg():
-    tf.random.set_random_seed(22)
-    np.random.seed(22)
-
     x_train = np.linspace(-3, 3, 300, dtype=np.float32).reshape((300, 1))
     noise = tfd.MultivariateNormalDiag(
         loc=5 * tf.math.sin(2 * x_train), scale_diag=abs(x_train)
     )
     y_train = noise.sample().numpy()
 
-    little_noise = MaximumLikelihoodNFEstimator(
-        1,
-        flow_types=("radial", "radial"),
-        hidden_sizes=(16, 16),
-        x_noise_std=0.1,
-        y_noise_std=0.0,
-        trainable_base_dist=True,
-    )
-
-    little_noise.fit(x_train, y_train, epochs=700, verbose=0)
-
-    x_test = np.linspace(-3, 3, 300, dtype=np.float32).reshape((300, 1))
-    noise = tfd.MultivariateNormalDiag(
-        loc=5 * tf.math.sin(2 * x_train), scale_diag=abs(x_train)
-    )
-    y_test = noise.sample().numpy()
-    out1 = little_noise.pdf(x_test, y_test).numpy()
-    out2 = little_noise.pdf(x_test, y_test).numpy()
-    # making sure that the noise regularisation is deactivated in testing mode
-    assert all(out1 == out2)
-
     too_much_noise = MaximumLikelihoodNFEstimator(
         1,
         flow_types=("radial", "radial"),
         hidden_sizes=(16, 16),
-        x_noise_std=20.0,
-        y_noise_std=0.0,
+        x_noise_std=5.0,
+        y_noise_std=0.01,
         trainable_base_dist=True,
     )
 
     too_much_noise.fit(x_train, y_train, epochs=700, verbose=0)
-    little_loss = -tf.reduce_sum(little_noise.pdf(x_test, y_test)) / 700
-    much_loss = -tf.reduce_sum(too_much_noise.pdf(x_test, y_test)) / 700
-    assert little_loss < much_loss
+
+    x_test = np.linspace(-3, 3, 300, dtype=np.float32).reshape((300, 1))
+    noise = tfd.MultivariateNormalDiag(
+        loc=5 * tf.math.sin(2 * x_test), scale_diag=abs(x_test)
+    )
+    y_test = noise.sample().numpy()
+    out1 = too_much_noise.pdf(x_test, y_test).numpy()
+    out2 = too_much_noise.pdf(x_test, y_test).numpy()
+    # making sure that the noise regularisation is deactivated in testing mode
+    assert all(out1 == out2)
+
+    little_noise = MaximumLikelihoodNFEstimator(
+        1,
+        flow_types=("radial", "radial"),
+        hidden_sizes=(16, 16),
+        x_noise_std=0.01,
+        y_noise_std=0.01,
+        trainable_base_dist=True,
+    )
+    little_noise.fit(x_train, y_train, epochs=700, verbose=0)
+
+    little_noise_score = tf.reduce_sum(little_noise.pdf(x_test, y_test)) / 700.0
+    too_much_noise_score = tf.reduce_sum(too_much_noise.pdf(x_test, y_test)) / 700.0
+    assert little_noise_score > too_much_noise_score
 
 
 def test_y_noise_reg():
-    x_train = np.linspace([[-1]] * 3, [[1]] * 3, 10).reshape((10, 3))
-    y_train = np.linspace([[-1]] * 3, [[1]] * 3, 10).reshape((10, 3))
+    x_train = np.linspace([[-1]] * 3, [[1]] * 3, 10, dtype=np.float32).reshape((10, 3))
+    y_train = np.linspace([[-1]] * 3, [[1]] * 3, 10, dtype=np.float32).reshape((10, 3))
 
     noise = MaximumLikelihoodNFEstimator(
         3,
@@ -138,17 +128,16 @@ def test_y_noise_reg():
     )
     noise.fit(x_train, y_train, epochs=10, verbose=0)
 
-    # loss should not include randomness during evaluation
-    loss1 = noise.loss([0.0], tfp.distributions.Normal(loc=0.0, scale=1.0)).numpy()
-    loss2 = noise.loss([0.0], tfp.distributions.Normal(loc=0.0, scale=1.0)).numpy()
-    assert all(loss1 == loss2)
+    input_model = noise._get_input_model(1.0)
+    # y_input should not include randomness during evaluation
+    y1 = input_model(y_train, training=False).numpy()
+    y2 = input_model(y_train, training=False).numpy()
+    assert np.all(y1 == y2)
 
     # loss should include randomness during learning
-    tf.keras.backend.set_learning_phase(1)
-    loss1 = noise.loss([0.0], tfp.distributions.Normal(loc=0.0, scale=1.0)).numpy()
-    loss2 = noise.loss([0.0], tfp.distributions.Normal(loc=0.0, scale=1.0)).numpy()
-    assert not any(loss1 == loss2)
-    tf.keras.backend.set_learning_phase(0)
+    y1 = input_model(y_train, training=True).numpy()
+    y2 = input_model(y_train, training=True).numpy()
+    assert not np.all(y1 == y2)
 
 
 @pytest.mark.slow
@@ -185,9 +174,6 @@ def test_on_gaussian():
 
 @pytest.mark.slow
 def test_bimodal_gaussian():
-    tf.random.set_random_seed(22)
-    np.random.seed(22)
-
     def get_data(sample_size=400):
         noise = tfd.Mixture(
             cat=tfd.Categorical(probs=[0.5, 0.5]),

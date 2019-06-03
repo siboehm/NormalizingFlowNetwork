@@ -49,19 +49,17 @@ class MaximumLikelihoodNFEstimator(BaseNFEstimator):
         activation="tanh",
     ):
         return MaximumLikelihoodNFEstimator(
-            n_dims,
-            flow_types,
-            hidden_sizes,
-            trainable_base_dist,
-            x_noise_std,
-            y_noise_std,
-            learning_rate,
-            activation,
+            n_dims=n_dims,
+            flow_types=flow_types,
+            hidden_sizes=hidden_sizes,
+            trainable_base_dist=trainable_base_dist,
+            x_noise_std=x_noise_std,
+            y_noise_std=y_noise_std,
+            learning_rate=learning_rate,
+            activation=activation,
         )
 
-    def _get_dense_layers(
-        self, hidden_sizes, output_size, x_noise_std=0.0, activation="relu"
-    ):
+    def _get_dense_layers(self, hidden_sizes, output_size, x_noise_std, activation):
         assert type(hidden_sizes) == tuple
         assert x_noise_std >= 0.0
 
@@ -69,7 +67,7 @@ class MaximumLikelihoodNFEstimator(BaseNFEstimator):
         normalization = [
             tf.keras.layers.Lambda(lambda x: (x - self.x_mean) / (self.x_std + 1e-8))
         ]
-        noise_reg = [tf.keras.layers.GaussianNoise(x_noise_std)] if x_noise_std else []
+        noise_reg = [tf.keras.layers.GaussianNoise(x_noise_std)]
         hidden = [
             tf.keras.layers.Dense(size, activation=activation) for size in hidden_sizes
         ]

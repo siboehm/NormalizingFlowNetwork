@@ -133,7 +133,7 @@ class BayesianNFEstimator(BaseNFEstimator):
         normalization = [
             tf.keras.layers.Lambda(lambda x: (x - self.x_mean) / (self.x_std + 1e-8))
         ]
-        noise_reg = [tf.keras.layers.GaussianNoise(x_noise_std)] if x_noise_std else []
+        noise_reg = [tf.keras.layers.GaussianNoise(x_noise_std)]
         hidden = [
             tfp.layers.DenseVariational(
                 units=size,

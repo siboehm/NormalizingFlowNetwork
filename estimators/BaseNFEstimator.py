@@ -1,12 +1,5 @@
 import tensorflow as tf
 import tensorflow_probability as tfp
-from tensorflow.python import tf2
-
-if not tf2.enabled():
-    import tensorflow.compat.v2 as tf
-
-    tf.enable_v2_behavior()
-    assert tf2.enabled()
 
 tfd = tfp.distributions
 import numpy as np
@@ -33,7 +26,7 @@ class BaseNFEstimator(tf.keras.Sequential):
     def _get_neg_log_likelihood(self, y_noise_std):
         y_input_model = self._get_input_model(y_noise_std)
         return lambda y, p_y: -p_y.log_prob(y_input_model(y)) + tf.reduce_sum(
-            tf.log(self.y_std)
+            tf.math.log(self.y_std)
         )
 
     def _get_input_model(self, y_noise_std):
@@ -59,4 +52,4 @@ class BaseNFEstimator(tf.keras.Sequential):
         assert x.shape == y.shape
         output = self(x)
         y_circ = (y - tf.ones_like(y) * self.y_mean) / self.y_std
-        return output.log_prob(y_circ) - tf.reduce_sum(tf.log(self.y_std))
+        return output.log_prob(y_circ) - tf.reduce_sum(tf.math.log(self.y_std))
