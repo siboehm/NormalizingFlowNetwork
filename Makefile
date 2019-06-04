@@ -6,4 +6,4 @@ quicktest:
 	python -m pytest -v -m "not slow"
 
 black: 
-	black --exclude venv .
+	black --exclude "(venv|\.json)" .

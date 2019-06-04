@@ -1,0 +1,39 @@
+{
+    "n_folds": 2,
+    "n_training_epochs": 20,
+    "n_datapoints": 100,
+    "density_configs": [
+        ["SkewNormal", {"random_seed": 22}],
+        ["EconDensity", {"random_seed": 22, "std": 1, "heteroscedastic": true}],
+        [
+            "GaussianMixture",
+            {
+                "random_seed": 22,
+                "n_kernels": 10,
+                "ndim_x": 1,
+                "ndim_y": 1,
+                "means_std": 1.5
+            }
+        ],
+        [
+            "ArmaJump",
+            {
+                "random_seed": 22,
+                "c": 0.1,
+                "arma_a1": 0.9,
+                "std": 0.05,
+                "jump_prob": 0.05
+            }
+        ]
+    ],
+    "param_grid_mle": {
+        "flow_types": [["radial", "radial", "radial"]],
+        "trainable_base_dist": [true],
+        "activation": ["tanh"]
+    },
+    "param_grid_bayesian": {
+        "flow_types": [["radial", "radial", "radial"]],
+        "trainable_base_dist": [true],
+        "activation": ["tanh"]
+    }
+}
