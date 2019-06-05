@@ -1,6 +1,11 @@
+import tensorflow as tf
+import tensorflow_probability as tfp
 import numpy as np
 from estimators import BayesianNFEstimator, MaximumLikelihoodNFEstimator
 from evaluation.scorers import bayesian_log_likelihood_score, mle_log_likelihood_score
+import pytest
+
+tf.random.set_random_seed(22)
 
 
 class DummyWrapper:
@@ -9,26 +14,31 @@ class DummyWrapper:
 
 
 def test_bayesian_score():
-    x_train = np.linspace(-1, 1, 10).reshape((10, 1))
-    y_train = np.linspace(-1, 1, 10).reshape((10, 1))
+    # sinusoidal data with heteroscedastic noise
+    x_train = np.linspace(-3, 3, 300, dtype=np.float32).reshape((300, 1))
+    noise = tfp.distributions.MultivariateNormalDiag(
+        loc=5 * tf.math.sin(2 * x_train), scale_diag=abs(x_train)
+    )
+    y_train = noise.sample().numpy()
 
     mle = MaximumLikelihoodNFEstimator(
         1, flow_types=tuple(), hidden_sizes=(6, 6), trainable_base_dist=True
     )
-    mle.fit(x_train, y_train, epochs=10, verbose=0)
+    mle.fit(x_train, y_train, epochs=20, verbose=0)
     # deterministic, so should be the same
+    # mle furthermore has no regularisation loss / KL-divs added, therefore evaluate and nll are the same
     assert bayesian_log_likelihood_score(
         DummyWrapper(mle), x_train, y_train
-    ) == -mle.evaluate(x_train, y_train)
+    ) == pytest.approx(-mle.evaluate(x_train, y_train))
 
     be = BayesianNFEstimator(
         n_dims=1, flow_types=tuple(), hidden_sizes=(6, 6), trainable_base_dist=True
     )
-    be.fit(x_train, y_train, epochs=10, verbose=0)
-    # random, so shouldn't be the same
-    assert bayesian_log_likelihood_score(
-        DummyWrapper(be), x_train, y_train
-    ) != -be.evaluate(x_train, y_train)
+    be.fit(x_train, y_train, epochs=200, verbose=0)
+    score = bayesian_log_likelihood_score(DummyWrapper(be), x_train, y_train)
+    loss = be.evaluate(x_train, y_train)
+    # ass the loss has the KL div to the prior added to it, it's negative has to be smaller than the nll score
+    assert score > -loss
 
 
 def test_mle_score():
@@ -42,4 +52,4 @@ def test_mle_score():
     # deterministic, so should be the same
     assert mle_log_likelihood_score(
         DummyWrapper(mle), x_train, y_train
-    ) == -mle.evaluate(x_train, y_train)
+    ) == pytest.approx(-mle.evaluate(x_train, y_train))

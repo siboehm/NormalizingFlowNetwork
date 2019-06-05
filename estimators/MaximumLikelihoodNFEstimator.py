@@ -48,6 +48,8 @@ class MaximumLikelihoodNFEstimator(BaseNFEstimator):
         learning_rate=3e-3,
         activation="tanh",
     ):
+        # this is necessary, else there'll be processes hanging around hogging memory
+        tf.keras.backend.clear_session()
         return MaximumLikelihoodNFEstimator(
             n_dims=n_dims,
             flow_types=flow_types,
@@ -60,7 +62,7 @@ class MaximumLikelihoodNFEstimator(BaseNFEstimator):
         )
 
     def _get_dense_layers(self, hidden_sizes, output_size, x_noise_std, activation):
-        assert type(hidden_sizes) == tuple
+        assert type(hidden_sizes) == tuple or type(hidden_sizes) == list
         assert x_noise_std >= 0.0
 
         # these values are assigned once fit is called

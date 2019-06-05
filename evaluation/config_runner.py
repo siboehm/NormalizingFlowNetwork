@@ -28,16 +28,19 @@ def run_configuation(
             model = tf.keras.wrappers.scikit_learn.KerasRegressor(
                 build_fn=estimator["build_fn"], epochs=n_epochs, verbose=0
             )
+
             cv = GridSearchCV(
-                model,
+                estimator=model,
                 param_grid=estimator["param_grid"],
-                cv=n_folds,
                 scoring=estimator["scoring_fn"],
                 n_jobs=-1,
+                pre_dispatch="1*n_jobs",
                 iid=True,
-                verbose=2,
+                cv=n_folds,
                 refit=False,
+                verbose=10,
                 error_score=np.NaN,
+                return_train_score=False,
             )
 
             x_train, y_train = DENSITY_CLASSES[density_name](**density_params).simulate(
@@ -49,22 +52,33 @@ def run_configuation(
                 y_train = np.expand_dims(y_train, axis=1)
 
             cv.fit(x_train, y_train)
-            pandas.DataFrame(cv.cv_results_).to_csv(
+            df = pandas.DataFrame(cv.cv_results_)
+            print(df)
+            df.to_csv(
                 os.path.join(
                     results_dir,
-                    "results_{}_{}.csv".format(estimator["estimator_name"], density_name),
+                    "results_{}_{}.csv".format(
+                        estimator["estimator_name"], density_name
+                    ),
                 )
             )
 
-        # df = pandas.DataFrame()
-        # for density, _ in DENSITIES:
-        #     temp = pandas.read_csv(
-        #         os.path.join(
-        #             DATA_DIR,
-        #             "results_{}_{}.csv".format(estimator["estimator_name"], density.__name__),
-        #         )
-        #     )
-        #     temp = temp.join(pandas.Series([density.__name__] * len(temp), name="density"))
-        #     df = df.append(temp)
-        #
-        # df.to_csv(os.path.join(DATA_DIR, "results_{}.csv".format(estimator["estimator_name"])))
+        df = pandas.DataFrame()
+        for density, _ in density_list:
+            temp = pandas.read_csv(
+                os.path.join(
+                    results_dir,
+                    "results_{}_{}.csv".format(estimator["estimator_name"], density),
+                )
+            )
+            temp = temp.join(pandas.Series([density] * len(temp), name="density"))
+            temp = temp.join(
+                pandas.Series(estimator["estimator_name"] * len(temp), name="estimator")
+            )
+            df = df.append(temp)
+
+        df.to_csv(
+            os.path.join(
+                results_dir, "results_{}.csv".format(estimator["estimator_name"])
+            )
+        )

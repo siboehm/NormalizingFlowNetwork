@@ -1,9 +1,9 @@
 import tensorflow as tf
 import tensorflow_probability as tfp
-
-tfd = tfp.distributions
 from estimators.DistributionLayers import InverseNormalizingFlowLayer, MeanFieldLayer
 from estimators.BaseNFEstimator import BaseNFEstimator
+
+tfd = tfp.distributions
 
 
 class BayesianNFEstimator(BaseNFEstimator):
@@ -72,6 +72,8 @@ class BayesianNFEstimator(BaseNFEstimator):
         learning_rate=2e-2,
         trainable_prior=False,
     ):
+        # this is necessary, else there'll be processes hanging around hogging memory
+        tf.keras.backend.clear_session()
         return BayesianNFEstimator(
             n_dims,
             kl_weight_scale,
@@ -125,7 +127,7 @@ class BayesianNFEstimator(BaseNFEstimator):
         x_noise_std=0.0,
         activation="relu",
     ):
-        assert type(hidden_sizes) == tuple
+        assert type(hidden_sizes) == tuple or type(hidden_sizes) == list
         assert kl_weight_scale <= 1.0
         assert x_noise_std >= 0.0
 
