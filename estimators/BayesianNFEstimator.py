@@ -20,6 +20,7 @@ class BayesianNFEstimator(BaseNFEstimator):
         y_noise_std=0.0,
         learning_rate=2e-2,
         trainable_prior=False,
+        prior_scale=1.0,
     ):
         """
         A bayesian net parametrizing a normalizing flow distribution
@@ -31,6 +32,7 @@ class BayesianNFEstimator(BaseNFEstimator):
         :param x_noise_std Stddev of zero centered gaussian noise added to x input
         :param y_noise_std Stddev of zero centered gaussian noise added to y input
         :param trainable_prior: empirical bayes
+        :param prior_scale: The scale of the zero centered priors
         """
         dist_layer = InverseNormalizingFlowLayer(
             flow_types=flow_types,
@@ -39,7 +41,7 @@ class BayesianNFEstimator(BaseNFEstimator):
         )
 
         posterior = self._get_posterior_fn()
-        prior = self._get_prior_fn(trainable_prior)
+        prior = self._get_prior_fn(trainable_prior, prior_scale)
         dense_layers = self._get_dense_layers(
             hidden_sizes=hidden_sizes,
             output_size=dist_layer.get_total_param_size(),
@@ -71,32 +73,34 @@ class BayesianNFEstimator(BaseNFEstimator):
         y_noise_std=0.0,
         learning_rate=2e-2,
         trainable_prior=False,
+        prior_scale=1.0,
     ):
         # this is necessary, else there'll be processes hanging around hogging memory
         tf.keras.backend.clear_session()
         return BayesianNFEstimator(
-            n_dims,
-            kl_weight_scale,
-            kl_use_exact,
-            flow_types,
-            hidden_sizes,
-            trainable_base_dist,
-            activation,
-            x_noise_std,
-            y_noise_std,
-            learning_rate,
-            trainable_prior,
+            n_dims=n_dims,
+            kl_weight_scale=kl_weight_scale,
+            kl_use_exact=kl_use_exact,
+            flow_types=flow_types,
+            hidden_sizes=hidden_sizes,
+            trainable_base_dist=trainable_base_dist,
+            activation=activation,
+            x_noise_std=x_noise_std,
+            y_noise_std=y_noise_std,
+            learning_rate=learning_rate,
+            trainable_prior=trainable_prior,
+            prior_scale=prior_scale,
         )
 
     @staticmethod
-    def _get_prior_fn(trainable=False):
+    def _get_prior_fn(trainable=False, prior_scale=1.0):
         def prior_fn(kernel_size, bias_size=0, dtype=None):
             size = kernel_size + bias_size
             layers = [
                 tfp.layers.VariableLayer(
                     shape=size, initializer="zeros", dtype=dtype, trainable=trainable
                 ),
-                MeanFieldLayer(size, scale=1.0, dtype=dtype),
+                MeanFieldLayer(size, scale=prior_scale, dtype=dtype),
             ]
             return tf.keras.Sequential(layers)
 

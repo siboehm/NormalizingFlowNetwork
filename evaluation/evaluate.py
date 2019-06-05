@@ -37,16 +37,6 @@ N_TRAINING_EPOCHS = run_config["n_training_epochs"]
 N_FOLDS = run_config["n_folds"]
 N_DATAPOINTS = run_config["n_datapoints"]
 ESTIMATOR_LIST = []
-if run_config.get("param_grid_mle"):
-    ESTIMATOR_LIST.append(
-        {
-            "estimator": MaximumLikelihoodNFEstimator,
-            "estimator_name": "mle",
-            "scoring_fn": mle_log_likelihood_score,
-            "build_fn": MaximumLikelihoodNFEstimator.build_function,
-            "param_grid": run_config["param_grid_mle"],
-        }
-    )
 if run_config.get("param_grid_bayesian"):
     ESTIMATOR_LIST.append(
         {
@@ -55,6 +45,16 @@ if run_config.get("param_grid_bayesian"):
             "scoring_fn": bayesian_log_likelihood_score,
             "build_fn": BayesianNFEstimator.build_function,
             "param_grid": run_config["param_grid_bayesian"],
+        }
+    )
+if run_config.get("param_grid_mle"):
+    ESTIMATOR_LIST.append(
+        {
+            "estimator": MaximumLikelihoodNFEstimator,
+            "estimator_name": "mle",
+            "scoring_fn": mle_log_likelihood_score,
+            "build_fn": MaximumLikelihoodNFEstimator.build_function,
+            "param_grid": run_config["param_grid_mle"],
         }
     )
 
