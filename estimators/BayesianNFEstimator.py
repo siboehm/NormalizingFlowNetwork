@@ -35,9 +35,7 @@ class BayesianNFEstimator(BaseNFEstimator):
         :param prior_scale: The scale of the zero centered priors
         """
         dist_layer = InverseNormalizingFlowLayer(
-            flow_types=flow_types,
-            n_dims=n_dims,
-            trainable_base_dist=trainable_base_dist,
+            flow_types=flow_types, n_dims=n_dims, trainable_base_dist=trainable_base_dist
         )
 
         posterior = self._get_posterior_fn()
@@ -136,9 +134,7 @@ class BayesianNFEstimator(BaseNFEstimator):
         assert x_noise_std >= 0.0
 
         # these values are assigned once fit is called
-        normalization = [
-            tf.keras.layers.Lambda(lambda x: (x - self.x_mean) / (self.x_std + 1e-8))
-        ]
+        normalization = [tf.keras.layers.Lambda(lambda x: (x - self.x_mean) / (self.x_std + 1e-8))]
         noise_reg = [tf.keras.layers.GaussianNoise(x_noise_std)]
         hidden = [
             tfp.layers.DenseVariational(

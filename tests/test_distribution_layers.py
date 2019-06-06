@@ -15,9 +15,7 @@ def test_total_param_size_nf():
         ("planar", "radial", "affine"), n_dims=3, trainable_base_dist=True
     )
     assert layer1.get_total_param_size() == 3 + 3 + 2
-    assert layer2.get_total_param_size() == (3 + 3 + 1) + (3 + 1 + 1) + (3 + 3) + (
-        3 + 3
-    )
+    assert layer2.get_total_param_size() == (3 + 3 + 1) + (3 + 1 + 1) + (3 + 3) + (3 + 3)
 
 
 def test_total_param_size_mf():
@@ -101,13 +99,9 @@ def test_get_bijector():
     assert type(output1.bijectors[1]) == FLOWS["radial"]
     assert type(output1.bijectors[2]) == FLOWS["planar"]
 
-    output1 = InverseNormalizingFlowLayer._get_bijector(
-        tf.zeros((10, 9)), ("planar", "radial"), 2
-    )
+    output1 = InverseNormalizingFlowLayer._get_bijector(tf.zeros((10, 9)), ("planar", "radial"), 2)
     assert len(output1.bijectors) == 2
     assert output1.inverse_min_event_ndims == 1
 
     with pytest.raises(AssertionError):
-        InverseNormalizingFlowLayer._get_bijector(
-            tf.zeros((10, 8)), ("planar", "radial"), 2
-        )
+        InverseNormalizingFlowLayer._get_bijector(tf.zeros((10, 8)), ("planar", "radial"), 2)

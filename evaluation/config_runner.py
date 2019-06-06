@@ -20,9 +20,7 @@ DENSITY_CLASSES = {
 }
 
 
-def run_configuation(
-    estimator_list, density_list, n_epochs, n_folds, n_datapoints, results_dir
-):
+def run_configuation(estimator_list, density_list, n_epochs, n_folds, n_datapoints, results_dir):
     for estimator in estimator_list:
         for density_name, density_params in density_list:
             model = tf.keras.wrappers.scikit_learn.KerasRegressor(
@@ -34,7 +32,7 @@ def run_configuation(
                 param_grid=estimator["param_grid"],
                 scoring=estimator["scoring_fn"],
                 n_jobs=-1,
-                pre_dispatch="1*n_jobs",
+                pre_dispatch=1,
                 iid=True,
                 cv=n_folds,
                 refit=False,
@@ -57,9 +55,7 @@ def run_configuation(
             df.to_csv(
                 os.path.join(
                     results_dir,
-                    "results_{}_{}.csv".format(
-                        estimator["estimator_name"], density_name
-                    ),
+                    "results_{}_{}.csv".format(estimator["estimator_name"], density_name),
                 )
             )
 
@@ -67,18 +63,13 @@ def run_configuation(
         for density, _ in density_list:
             temp = pandas.read_csv(
                 os.path.join(
-                    results_dir,
-                    "results_{}_{}.csv".format(estimator["estimator_name"], density),
+                    results_dir, "results_{}_{}.csv".format(estimator["estimator_name"], density)
                 )
             )
             temp = temp.join(pandas.Series([density] * len(temp), name="density"))
             temp = temp.join(
-                pandas.Series(estimator["estimator_name"] * len(temp), name="estimator")
+                pandas.Series([estimator["estimator_name"]] * len(temp), name="estimator")
             )
             df = df.append(temp)
 
-        df.to_csv(
-            os.path.join(
-                results_dir, "results_{}.csv".format(estimator["estimator_name"])
-            )
-        )
+        df.to_csv(os.path.join(results_dir, "results_{}.csv".format(estimator["estimator_name"])))

@@ -49,13 +49,9 @@ def gen_trippe_hetero_data(
 
     # Generate X for first half of data
     X = np.random.uniform(bounds[0], bounds[1], size=[n_pts_mode, dim])
-    Y_std = (
-        noise_scale * abs(np.sin(X).prod(axis=1)) + global_noise
-    )  # Heteroscedastic noise
+    Y_std = noise_scale * abs(np.sin(X).prod(axis=1)) + global_noise  # Heteroscedastic noise
     if asymetric:
-        Y = abs(np.random.normal(0.0, abs(Y_std))) + signal_scale * np.sin(X).prod(
-            axis=1
-        )
+        Y = abs(np.random.normal(0.0, abs(Y_std))) + signal_scale * np.sin(X).prod(axis=1)
     else:
         Y = np.random.normal(0.0, abs(Y_std)) + signal_scale * np.sin(X).prod(axis=1)
 
@@ -66,9 +62,9 @@ def gen_trippe_hetero_data(
         # The bimodality arises from using 'abs(X_more)' rather than simply
         # X_more within sin
         if asymetric:
-            Y_more = abs(
-                np.random.normal(0.0, abs(Y_std_more))
-            ) + signal_scale * np.sin(abs(X_more).prod(axis=1))
+            Y_more = abs(np.random.normal(0.0, abs(Y_std_more))) + signal_scale * np.sin(
+                abs(X_more).prod(axis=1)
+            )
         else:
             Y_more = np.random.normal(0.0, abs(Y_std_more)) + signal_scale * np.sin(
                 abs(X_more).prod(axis=1)

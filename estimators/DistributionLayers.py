@@ -41,8 +41,7 @@ class MeanFieldLayer(tfp.layers.DistributionLambda):
                         loc=t[..., 0:n_dims],
                         scale=1e-5
                         + tf.nn.softplus(
-                            tf.math.log(tf.math.expm1(1.0))
-                            + t[..., n_dims : 2 * n_dims]
+                            tf.math.log(tf.math.expm1(1.0)) + t[..., n_dims : 2 * n_dims]
                         ),
                     ),
                     reinterpreted_batch_ndims=1,
@@ -54,8 +53,7 @@ class MeanFieldLayer(tfp.layers.DistributionLambda):
             def dist_fn(t):
                 assert t.shape[-1] == n_dims
                 return tfd.Independent(
-                    tfd.Normal(loc=t[..., 0:n_dims], scale=scale),
-                    reinterpreted_batch_ndims=1,
+                    tfd.Normal(loc=t[..., 0:n_dims], scale=scale), reinterpreted_batch_ndims=1
                 )
 
         return dist_fn
@@ -88,19 +86,13 @@ class InverseNormalizingFlowLayer(tfp.layers.DistributionLambda):
         # therefore a function needs to be provided that transforms a distribution into a tensor
         # per default the .sample() function is used, but our reversed flows cannot perform that operation
         convert_ttfn = lambda d: d.log_prob([1.0] * n_dims)
-        make_flow_dist = self._get_distribution_fn(
-            n_dims, flow_types, trainable_base_dist
-        )
-        super().__init__(
-            make_distribution_fn=make_flow_dist, convert_to_tensor_fn=convert_ttfn
-        )
+        make_flow_dist = self._get_distribution_fn(n_dims, flow_types, trainable_base_dist)
+        super().__init__(make_distribution_fn=make_flow_dist, convert_to_tensor_fn=convert_ttfn)
 
     @staticmethod
     def _get_distribution_fn(n_dims, flow_types, trainable_base_dist):
         return lambda t: tfd.TransformedDistribution(
-            distribution=InverseNormalizingFlowLayer._get_base_dist(
-                t, n_dims, trainable_base_dist
-            ),
+            distribution=InverseNormalizingFlowLayer._get_base_dist(t, n_dims, trainable_base_dist),
             bijector=InverseNormalizingFlowLayer._get_bijector(
                 (t[..., 2 * n_dims :] if trainable_base_dist else t), flow_types, n_dims
             ),
@@ -111,10 +103,7 @@ class InverseNormalizingFlowLayer(tfp.layers.DistributionLambda):
         :return: The total number of parameters to specify this distribution
         """
         num_flow_params = sum(
-            [
-                FLOWS[flow_type].get_param_size(self._n_dims)
-                for flow_type in self._flow_types
-            ]
+            [FLOWS[flow_type].get_param_size(self._n_dims) for flow_type in self._flow_types]
         )
         base_dist_params = 2 * self._n_dims if self._trainable_base_dist else 0
         return num_flow_params + base_dist_params
@@ -123,9 +112,7 @@ class InverseNormalizingFlowLayer(tfp.layers.DistributionLambda):
     def _get_bijector(t, flow_types, n_dims):
         # intuitively, we want to flows to go from base_dist -> transformed dist
         flow_types = list(reversed(flow_types))
-        param_sizes = [
-            FLOWS[flow_type].get_param_size(n_dims) for flow_type in flow_types
-        ]
+        param_sizes = [FLOWS[flow_type].get_param_size(n_dims) for flow_type in flow_types]
         assert sum(param_sizes) == t.shape[-1]
         split_beginnings = [sum(param_sizes[0:i]) for i in range(len(param_sizes))]
         chain = [

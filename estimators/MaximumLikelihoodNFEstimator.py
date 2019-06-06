@@ -19,9 +19,7 @@ class MaximumLikelihoodNFEstimator(BaseNFEstimator):
         activation="relu",
     ):
         dist_layer = InverseNormalizingFlowLayer(
-            flow_types=flow_types,
-            n_dims=n_dims,
-            trainable_base_dist=trainable_base_dist,
+            flow_types=flow_types, n_dims=n_dims, trainable_base_dist=trainable_base_dist
         )
         dense_layers = self._get_dense_layers(
             hidden_sizes=hidden_sizes,
@@ -66,12 +64,8 @@ class MaximumLikelihoodNFEstimator(BaseNFEstimator):
         assert x_noise_std >= 0.0
 
         # these values are assigned once fit is called
-        normalization = [
-            tf.keras.layers.Lambda(lambda x: (x - self.x_mean) / (self.x_std + 1e-8))
-        ]
+        normalization = [tf.keras.layers.Lambda(lambda x: (x - self.x_mean) / (self.x_std + 1e-8))]
         noise_reg = [tf.keras.layers.GaussianNoise(x_noise_std)]
-        hidden = [
-            tf.keras.layers.Dense(size, activation=activation) for size in hidden_sizes
-        ]
+        hidden = [tf.keras.layers.Dense(size, activation=activation) for size in hidden_sizes]
         output = [tf.keras.layers.Dense(output_size, activation="linear")]
         return normalization + noise_reg + hidden + output

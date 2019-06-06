@@ -14,14 +14,10 @@ def flow_dimension_testing(flow_name):
         flow_class = FLOWS[flow_name]
         # test dimension of parameter space
         with pytest.raises(AssertionError):
-            flow = flow_class(
-                tf.ones((batch_size, flow_class.get_param_size(dim) + 1)), dim
-            )
+            flow = flow_class(tf.ones((batch_size, flow_class.get_param_size(dim) + 1)), dim)
 
         flow = flow_class(tf.ones((batch_size, flow_class.get_param_size(dim))), dim)
-        reference = AffineFlow(
-            tf.ones((batch_size, AffineFlow.get_param_size(dim))), dim
-        )
+        reference = AffineFlow(tf.ones((batch_size, AffineFlow.get_param_size(dim))), dim)
 
         test_tensors = [[[0.0] * dim], [[1.0] * dim] * batch_size]
         assert flow.forward_min_event_ndims == reference.forward_min_event_ndims

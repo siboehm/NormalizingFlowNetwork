@@ -13,11 +13,7 @@ np.random.seed(22)
 
 def test_dense_layer_generation():
     layers = BayesianNFEstimator(1)._get_dense_layers(
-        hidden_sizes=(2, 2, 2),
-        output_size=2,
-        posterior=None,
-        prior=None,
-        x_noise_std=0.0,
+        hidden_sizes=(2, 2, 2), output_size=2, posterior=None, prior=None, x_noise_std=0.0
     )
     assert len(layers) == 6
 
@@ -112,9 +108,7 @@ def test_y_noise_reg():
 def test_bayesian_nn_on_gaussian():
     # sinusoidal data with heteroscedastic noise
     x_train = np.linspace(-3, 3, 300, dtype=np.float32).reshape((300, 1))
-    noise = tfd.MultivariateNormalDiag(
-        loc=5 * tf.math.sin(2 * x_train), scale_diag=abs(x_train)
-    )
+    noise = tfd.MultivariateNormalDiag(loc=5 * tf.math.sin(2 * x_train), scale_diag=abs(x_train))
     y_train = noise.sample().numpy()
 
     model = BayesianNFEstimator(
@@ -131,17 +125,12 @@ def test_bayesian_nn_on_gaussian():
     model.fit(x_train, y_train, epochs=1000, verbose=0)
 
     x_test = np.linspace(-3, 3, 1000, dtype=np.float32).reshape((1000, 1))
-    noise = tfd.MultivariateNormalDiag(
-        loc=5 * tf.math.sin(2 * x_test), scale_diag=abs(x_test)
-    )
+    noise = tfd.MultivariateNormalDiag(loc=5 * tf.math.sin(2 * x_test), scale_diag=abs(x_test))
     y_test = noise.sample().numpy()
 
     score = 0
     for _ in range(30):
-        draw = (
-            tf.reduce_sum(abs(model.pdf(x_test, y_test) - noise.prob(y_test)), axis=0)
-            / 1000.0
-        )
+        draw = tf.reduce_sum(abs(model.pdf(x_test, y_test) - noise.prob(y_test)), axis=0) / 1000.0
         score += draw
     assert score / 30.0 < 0.68
 
@@ -178,9 +167,6 @@ def test_bimodal_gaussian():
 
     score = 0
     for _ in range(30):
-        draw = (
-            tf.reduce_sum(abs(model.pdf(x_test, y_test) - pdf.prob(y_test)), axis=0)
-            / 1000.0
-        )
+        draw = tf.reduce_sum(abs(model.pdf(x_test, y_test) - pdf.prob(y_test)), axis=0) / 1000.0
         score += draw
     assert score / 30.0 < 0.21

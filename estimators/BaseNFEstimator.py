@@ -33,9 +33,7 @@ class BaseNFEstimator(tf.keras.Sequential):
         y_input_model = tf.keras.Sequential()
         # add data normalization layer
         y_input_model.add(
-            tf.keras.layers.Lambda(
-                lambda y: (y - tf.ones_like(y) * self.y_mean) / self.y_std
-            )
+            tf.keras.layers.Lambda(lambda y: (y - tf.ones_like(y) * self.y_mean) / self.y_std)
         )
         if y_noise_std:
             # noise will be switched on during training and switched off otherwise automatically

@@ -15,17 +15,13 @@ from evaluation.config_runner import run_configuation
 
 
 parser = argparse.ArgumentParser()
-parser.add_argument(
-    "run_config", help="name of the run configuation stored in data/local/"
-)
+parser.add_argument("run_config", help="name of the run configuation stored in data/local/")
 args = parser.parse_args()
 
 config_file_path = os.path.join(DATA_DIR, "local/", args.run_config)
 with open(config_file_path, "r") as f:
     run_config = json.load(f)
-config_dir_name = (
-    args.run_config.split(".")[0] + "_" + datetime.now().strftime("%Y-%m-%d_%H-%M")
-)
+config_dir_name = args.run_config.split(".")[0] + "_" + datetime.now().strftime("%Y-%m-%d_%H-%M")
 config_dir_path = os.path.join(DATA_DIR, "local/", config_dir_name)
 os.mkdir(config_dir_path)
 

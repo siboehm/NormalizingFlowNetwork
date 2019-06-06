@@ -27,9 +27,9 @@ def test_bayesian_score():
     mle.fit(x_train, y_train, epochs=20, verbose=0)
     # deterministic, so should be the same
     # mle furthermore has no regularisation loss / KL-divs added, therefore evaluate and nll are the same
-    assert bayesian_log_likelihood_score(
-        DummyWrapper(mle), x_train, y_train
-    ) == pytest.approx(-mle.evaluate(x_train, y_train))
+    assert bayesian_log_likelihood_score(DummyWrapper(mle), x_train, y_train) == pytest.approx(
+        -mle.evaluate(x_train, y_train)
+    )
 
     be = BayesianNFEstimator(
         n_dims=1, flow_types=tuple(), hidden_sizes=(6, 6), trainable_base_dist=True
@@ -50,6 +50,6 @@ def test_mle_score():
     )
     mle.fit(x_train, y_train, epochs=10, verbose=0)
     # deterministic, so should be the same
-    assert mle_log_likelihood_score(
-        DummyWrapper(mle), x_train, y_train
-    ) == pytest.approx(-mle.evaluate(x_train, y_train))
+    assert mle_log_likelihood_score(DummyWrapper(mle), x_train, y_train) == pytest.approx(
+        -mle.evaluate(x_train, y_train)
+    )
