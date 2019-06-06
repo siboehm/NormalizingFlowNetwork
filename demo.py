@@ -10,11 +10,10 @@ if not tf2.enabled():
 
 import numpy as np
 import matplotlib.pyplot as plt
-from data_gen import gen_trippe_hetero_data, gen_cosine_noise_data
+from data_gen import gen_cosine_noise_data
 from estimators import BayesianNFEstimator
-from estimators import MaximumLikelihoodNFEstimator
 
-from plotting import plot_model
+from evaluation.visualization.flow_plotting import plot_model
 
 tfd = tfp.distributions
 tf.random.set_seed(22)
