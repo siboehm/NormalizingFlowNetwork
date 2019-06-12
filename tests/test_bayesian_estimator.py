@@ -1,19 +1,17 @@
 import tensorflow as tf
 import pytest
 import tensorflow_probability as tfp
-
-tfd = tfp.distributions
-
 import numpy as np
 from estimators import BayesianNFEstimator
 
+tfd = tfp.distributions
 tf.random.set_random_seed(22)
 np.random.seed(22)
 
 
 def test_dense_layer_generation():
     layers = BayesianNFEstimator(1)._get_dense_layers(
-        hidden_sizes=(2, 2, 2), output_size=2, posterior=None, prior=None, x_noise_std=0.0
+        hidden_sizes=(2, 2, 2), output_size=2, posterior=None, prior=None
     )
     assert len(layers) == 6
 
@@ -87,12 +85,11 @@ def test_y_noise_reg():
         flow_types=("planar", "radial", "affine"),
         hidden_sizes=(16, 16),
         trainable_base_dist=True,
-        x_noise_std=1.0,
-        y_noise_std=1.0,
+        noise_reg=("rule_of_thumb", 1.0),
     )
     noise.fit(x_train, y_train, epochs=10, verbose=0)
 
-    input_model = noise._get_input_model(1.0)
+    input_model = noise._get_input_model()
     # y_input should not include randomness during evaluation
     y1 = input_model(y_train, training=False).numpy()
     y2 = input_model(y_train, training=False).numpy()
@@ -118,8 +115,7 @@ def test_bayesian_nn_on_gaussian():
         hidden_sizes=(10,),
         activation="tanh",
         learning_rate=0.03,
-        x_noise_std=0.1,
-        y_noise_std=0.1,
+        noise_reg=("fixed_rate", 0.1),
         trainable_base_dist=True,
     )
     model.fit(x_train, y_train, epochs=1000, verbose=0)

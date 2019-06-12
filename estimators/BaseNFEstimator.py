@@ -7,8 +7,7 @@ tfd = tfp.distributions
 
 
 class BaseNFEstimator(tf.keras.Sequential):
-
-    def __init__(self, layers, noise_fn_type='fixed_rate', noise_scale_factor=0.0):
+    def __init__(self, layers, noise_fn_type="fixed_rate", noise_scale_factor=0.0):
         # data normalization
         self.x_mean = [0.0]
         self.y_mean = [0.0]

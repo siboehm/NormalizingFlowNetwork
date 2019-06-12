@@ -13,7 +13,7 @@ class MaximumLikelihoodNFEstimator(BaseNFEstimator):
         flow_types=("radial", "radial"),
         hidden_sizes=(16, 16),
         trainable_base_dist=True,
-        noise_reg=('fixed_rate', 0.0),
+        noise_reg=("fixed_rate", 0.0),
         learning_rate=3e-3,
         activation="relu",
     ):
@@ -47,7 +47,7 @@ class MaximumLikelihoodNFEstimator(BaseNFEstimator):
         flow_types=("radial", "radial"),
         hidden_sizes=(16, 16),
         trainable_base_dist=True,
-        noise_reg=('fixed_rate', 0.0),
+        noise_reg=("fixed_rate", 0.0),
         learning_rate=3e-3,
         activation="tanh",
     ):

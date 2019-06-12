@@ -16,9 +16,8 @@ class BayesianNFEstimator(BaseNFEstimator):
         hidden_sizes=(10,),
         trainable_base_dist=True,
         activation="tanh",
-        x_noise_std=0.0,
-        y_noise_std=0.0,
         learning_rate=2e-2,
+        noise_reg=("fixed_rate", 0.0),
         trainable_prior=False,
         prior_scale=1.0,
     ):
@@ -29,11 +28,13 @@ class BayesianNFEstimator(BaseNFEstimator):
         :param flow_types: tuple of flows to use
         :param hidden_sizes: size and depth of net
         :param trainable_base_dist: whether to train the base normal dist
-        :param x_noise_std Stddev of zero centered gaussian noise added to x input
-        :param y_noise_std Stddev of zero centered gaussian noise added to y input
+        :param noise_reg: Tuple with (type_of_reg, scale_factor)
         :param trainable_prior: empirical bayes
         :param prior_scale: The scale of the zero centered priors
         """
+        self.x_noise_std = tf.Variable(initial_value=0.0, dtype=tf.float32, trainable=False)
+        self.y_noise_std = tf.Variable(initial_value=0.0, dtype=tf.float32, trainable=False)
+
         dist_layer = InverseNormalizingFlowLayer(
             flow_types=flow_types, n_dims=n_dims, trainable_base_dist=trainable_base_dist
         )
@@ -47,15 +48,16 @@ class BayesianNFEstimator(BaseNFEstimator):
             prior=prior,
             kl_weight_scale=kl_weight_scale,
             kl_use_exact=kl_use_exact,
-            x_noise_std=x_noise_std,
             activation=activation,
         )
 
-        super().__init__(dense_layers + [dist_layer])
+        super().__init__(
+            dense_layers + [dist_layer], noise_fn_type=noise_reg[0], noise_scale_factor=noise_reg[1]
+        )
 
         self.compile(
             optimizer=tf.compat.v2.optimizers.Adam(learning_rate),
-            loss=self._get_neg_log_likelihood(y_noise_std),
+            loss=self._get_neg_log_likelihood(),
         )
 
     @staticmethod
@@ -67,8 +69,7 @@ class BayesianNFEstimator(BaseNFEstimator):
         hidden_sizes=(10,),
         trainable_base_dist=True,
         activation="tanh",
-        x_noise_std=0.0,
-        y_noise_std=0.0,
+        noise_reg=("fixed_rate", 0.0),
         learning_rate=2e-2,
         trainable_prior=False,
         prior_scale=1.0,
@@ -83,8 +84,7 @@ class BayesianNFEstimator(BaseNFEstimator):
             hidden_sizes=hidden_sizes,
             trainable_base_dist=trainable_base_dist,
             activation=activation,
-            x_noise_std=x_noise_std,
-            y_noise_std=y_noise_std,
+            noise_reg=noise_reg,
             learning_rate=learning_rate,
             trainable_prior=trainable_prior,
             prior_scale=prior_scale,
@@ -126,16 +126,14 @@ class BayesianNFEstimator(BaseNFEstimator):
         prior,
         kl_weight_scale=1.0,
         kl_use_exact=False,
-        x_noise_std=0.0,
         activation="relu",
     ):
         assert type(hidden_sizes) == tuple or type(hidden_sizes) == list
         assert kl_weight_scale <= 1.0
-        assert x_noise_std >= 0.0
 
         # these values are assigned once fit is called
         normalization = [tf.keras.layers.Lambda(lambda x: (x - self.x_mean) / (self.x_std + 1e-8))]
-        noise_reg = [tf.keras.layers.GaussianNoise(x_noise_std)]
+        noise_reg = [tf.keras.layers.GaussianNoise(self.x_noise_std)]
         hidden = [
             tfp.layers.DenseVariational(
                 units=size,
