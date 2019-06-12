@@ -183,4 +183,4 @@ def test_bimodal_gaussian():
     x_test, y_test, pdf = get_data(800)
 
     score = tf.reduce_sum(abs(model.pdf(x_test, y_test) - pdf.prob(y_test)), axis=0) / 800.0
-    assert score < 0.1
+    assert score < 0.1005

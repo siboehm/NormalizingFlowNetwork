@@ -36,8 +36,8 @@ def test_bayesian_score():
     )
     be.fit(x_train, y_train, epochs=200, verbose=0)
     score = bayesian_log_likelihood_score(DummyWrapper(be), x_train, y_train)
-    loss = be.evaluate(x_train, y_train)
-    # ass the loss has the KL div to the prior added to it, it's negative has to be smaller than the nll score
+    loss = sum([be.evaluate(x_train, y_train) for _ in range(50)]) / 50
+    # as the loss has the KL div to the prior added to it, it's negative has to be smaller than the nll score
     assert score > -loss
 
 
