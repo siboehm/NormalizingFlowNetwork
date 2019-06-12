@@ -14,7 +14,7 @@ np.random.seed(22)
 
 def test_dense_layer_generation():
     layers = MaximumLikelihoodNFEstimator(1)._get_dense_layers(
-        hidden_sizes=(2, 2, 2), output_size=2, activation="linear", x_noise_std=0.1
+        hidden_sizes=(2, 2, 2), output_size=2, activation="linear"
     )
     assert len(layers) == 6
 
@@ -80,8 +80,7 @@ def test_x_noise_reg():
         1,
         flow_types=("radial", "radial"),
         hidden_sizes=(16, 16),
-        x_noise_std=5.0,
-        y_noise_std=0.01,
+        noise_reg=("fixed_rate", 3.0),
         trainable_base_dist=True,
     )
 
@@ -99,8 +98,7 @@ def test_x_noise_reg():
         1,
         flow_types=("radial", "radial"),
         hidden_sizes=(16, 16),
-        x_noise_std=0.01,
-        y_noise_std=0.01,
+        noise_reg=("rule_of_thumb", 0.1),
         trainable_base_dist=True,
     )
     little_noise.fit(x_train, y_train, epochs=700, verbose=0)
@@ -119,12 +117,11 @@ def test_y_noise_reg():
         flow_types=("planar", "radial", "affine"),
         hidden_sizes=(16, 16),
         trainable_base_dist=True,
-        x_noise_std=1.0,
-        y_noise_std=1.0,
+        noise_reg=("fixed_rate", 1.0),
     )
     noise.fit(x_train, y_train, epochs=10, verbose=0)
 
-    input_model = noise._get_input_model(1.0)
+    input_model = noise._get_input_model()
     # y_input should not include randomness during evaluation
     y1 = input_model(y_train, training=False).numpy()
     y2 = input_model(y_train, training=False).numpy()
@@ -175,7 +172,10 @@ def test_bimodal_gaussian():
     x_train, y_train, _ = get_data()
 
     model = MaximumLikelihoodNFEstimator(
-        1, flow_types=("radial", "radial"), hidden_sizes=(16, 16), trainable_base_dist=True
+        1,
+        flow_types=("radial", "radial", "radial"),
+        hidden_sizes=(10, 10),
+        trainable_base_dist=True,
     )
 
     model.fit(x_train, y_train, epochs=700, verbose=0)

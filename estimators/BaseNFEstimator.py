@@ -1,21 +1,41 @@
 import tensorflow as tf
 import tensorflow_probability as tfp
+import numpy as np
+from estimators.AdaptiveNoiseCallback import AdaptiveNoiseCallback
 
 tfd = tfp.distributions
-import numpy as np
 
 
 class BaseNFEstimator(tf.keras.Sequential):
-    def __init__(self, layers):
+
+    def __init__(self, layers, noise_fn_type='fixed_rate', noise_scale_factor=0.0):
+        # data normalization
         self.x_mean = [0.0]
         self.y_mean = [0.0]
         self.x_std = [1.0]
         self.y_std = [1.0]
+
+        self.noise_fn_type = noise_fn_type
+        self.noise_scale_factor = noise_scale_factor
+
         super().__init__(layers)
 
     def fit(self, x, y, batch_size=None, epochs=None, verbose=1, **kwargs):
         self._assign_data_normalization(x, y)
-        super().fit(x, y, batch_size, epochs, verbose, kwargs)
+        assert len(x.shape) == len(y.shape) == 2
+        ndim_x = x.shape[1]
+        ndim_y = y.shape[1]
+        super().fit(
+            x=x,
+            y=y,
+            batch_size=batch_size,
+            epochs=epochs,
+            verbose=verbose,
+            callbacks=[
+                AdaptiveNoiseCallback(self.noise_fn_type, self.noise_scale_factor, ndim_x, ndim_y)
+            ],
+            **kwargs
+        )
 
     def _assign_data_normalization(self, x, y):
         self.x_mean = np.mean(x, axis=0, dtype=np.float32)
@@ -23,21 +43,20 @@ class BaseNFEstimator(tf.keras.Sequential):
         self.x_std = np.std(x, axis=0, dtype=np.float32)
         self.y_std = np.std(y, axis=0, dtype=np.float32)
 
-    def _get_neg_log_likelihood(self, y_noise_std):
-        y_input_model = self._get_input_model(y_noise_std)
+    def _get_neg_log_likelihood(self):
+        y_input_model = self._get_input_model()
         return lambda y, p_y: -p_y.log_prob(y_input_model(y)) + tf.reduce_sum(
             tf.math.log(self.y_std)
         )
 
-    def _get_input_model(self, y_noise_std):
+    def _get_input_model(self):
         y_input_model = tf.keras.Sequential()
         # add data normalization layer
         y_input_model.add(
             tf.keras.layers.Lambda(lambda y: (y - tf.ones_like(y) * self.y_mean) / self.y_std)
         )
-        if y_noise_std:
-            # noise will be switched on during training and switched off otherwise automatically
-            y_input_model.add(tf.keras.layers.GaussianNoise(y_noise_std))
+        # noise will be switched on during training and switched off otherwise automatically
+        y_input_model.add(tf.keras.layers.GaussianNoise(self.y_noise_std))
         return y_input_model
 
     def pdf(self, x, y):
