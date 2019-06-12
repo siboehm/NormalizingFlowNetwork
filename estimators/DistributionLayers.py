@@ -14,7 +14,7 @@ tfd = tfp.distributions
 class MeanFieldLayer(tfp.layers.DistributionLambda):
     n_dims, scale = None, None
 
-    def __init__(self, n_dims, scale=None, dtype=None):
+    def __init__(self, n_dims, scale=None, map_mode=False, dtype=None):
         """
         A subclass of Distribution Lambda. A layer that uses it's input to parametrize n_dims-many indepentent normal
         distributions (aka mean field)
@@ -26,9 +26,12 @@ class MeanFieldLayer(tfp.layers.DistributionLambda):
         """
         self.n_dims = n_dims
         self.scale = scale
+        convert_ttf = tfd.Distribution.mean if map_mode else tfd.Distribution.sample
         make_dist_fn = self._get_distribution_fn(n_dims, scale)
 
-        super().__init__(make_distribution_fn=make_dist_fn, dtype=dtype)
+        super().__init__(
+            make_distribution_fn=make_dist_fn, convert_to_tensor_fn=convert_ttf, dtype=dtype
+        )
 
     @staticmethod
     def _get_distribution_fn(n_dims, scale=None):

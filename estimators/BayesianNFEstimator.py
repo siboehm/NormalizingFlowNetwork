@@ -19,6 +19,7 @@ class BayesianNFEstimator(BaseNFEstimator):
         learning_rate=2e-2,
         noise_reg=("fixed_rate", 0.0),
         trainable_prior=False,
+        map_mode=False,
         prior_scale=1.0,
     ):
         """
@@ -30,6 +31,7 @@ class BayesianNFEstimator(BaseNFEstimator):
         :param trainable_base_dist: whether to train the base normal dist
         :param noise_reg: Tuple with (type_of_reg, scale_factor)
         :param trainable_prior: empirical bayes
+        :param map_mode: If true, will use the mean of the posterior instead of a sample. Default False
         :param prior_scale: The scale of the zero centered priors
         """
         self.x_noise_std = tf.Variable(initial_value=0.0, dtype=tf.float32, trainable=False)
@@ -39,7 +41,7 @@ class BayesianNFEstimator(BaseNFEstimator):
             flow_types=flow_types, n_dims=n_dims, trainable_base_dist=trainable_base_dist
         )
 
-        posterior = self._get_posterior_fn()
+        posterior = self._get_posterior_fn(map_mode=map_mode)
         prior = self._get_prior_fn(trainable_prior, prior_scale)
         dense_layers = self._get_dense_layers(
             hidden_sizes=hidden_sizes,
@@ -105,14 +107,14 @@ class BayesianNFEstimator(BaseNFEstimator):
         return prior_fn
 
     @staticmethod
-    def _get_posterior_fn():
+    def _get_posterior_fn(map_mode=False):
         def posterior_fn(kernel_size, bias_size=0, dtype=None):
             size = kernel_size + bias_size
             layers = [
                 tfp.layers.VariableLayer(
                     2 * size, initializer="normal", dtype=dtype, trainable=True
                 ),
-                MeanFieldLayer(size, scale=None, dtype=dtype),
+                MeanFieldLayer(size, scale=None, map_mode=map_mode, dtype=dtype),
             ]
             return tf.keras.Sequential(layers)
 

@@ -100,6 +100,32 @@ def test_y_noise_reg():
     y2 = input_model(y_train, training=True).numpy()
     assert not np.all(y1 == y2)
 
+def test_map_mode():
+    x_train = np.linspace([[-1]] * 3, [[1]] * 3, 10, dtype=np.float32).reshape((10, 3))
+    y_train = np.linspace([[-1]] * 3, [[1]] * 3, 10, dtype=np.float32).reshape((10, 3))
+
+    map_model = BayesianNFEstimator(
+        3,
+        flow_types=("planar", "radial", "affine"),
+        hidden_sizes=(16, 16),
+        trainable_base_dist=True,
+        noise_reg=("rule_of_thumb", 1.0),
+        map_mode=True
+    )
+    map_model.fit(x_train, y_train, epochs=10, verbose=0)
+    assert map_model.evaluate(x_train, y_train) == map_model.evaluate(x_train, y_train)
+
+    bayes_model = BayesianNFEstimator(
+        3,
+        flow_types=("planar", "radial", "affine"),
+        hidden_sizes=(16, 16),
+        trainable_base_dist=True,
+        noise_reg=("rule_of_thumb", 1.0),
+        map_mode=False
+    )
+    bayes_model.fit(x_train, y_train, epochs=10, verbose=0)
+    assert bayes_model.evaluate(x_train, y_train) != bayes_model.evaluate(x_train, y_train)
+
 
 @pytest.mark.slow
 def test_bayesian_nn_on_gaussian():
