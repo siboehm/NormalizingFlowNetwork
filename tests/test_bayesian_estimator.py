@@ -23,7 +23,7 @@ def test_model_output_dims_1d():
     m1 = BayesianNFEstimator(
         1,
         kl_weight_scale=1.0 / x_train.shape[0],
-        flow_types=("radial", "affine", "planar"),
+        n_flows=3,
         hidden_sizes=(16, 16),
         trainable_base_dist=False,
     )
@@ -45,7 +45,7 @@ def test_model_output_dims_1d_2():
     m1 = BayesianNFEstimator(
         1,
         kl_weight_scale=1.0 / x_train.shape[0],
-        flow_types=tuple(),
+        n_flows=0,
         hidden_sizes=(16, 16),
         trainable_base_dist=True,
     )
@@ -64,7 +64,7 @@ def test_model_ouput_dims_3d():
     m1 = BayesianNFEstimator(
         3,
         kl_weight_scale=1.0 / x_train.shape[0],
-        flow_types=("radial", "affine", "planar"),
+        n_flows=3,
         hidden_sizes=(16, 16),
         trainable_base_dist=True,
     )
@@ -82,7 +82,7 @@ def test_y_noise_reg():
 
     noise = BayesianNFEstimator(
         3,
-        flow_types=("planar", "radial", "affine"),
+        n_flows=3,
         hidden_sizes=(16, 16),
         trainable_base_dist=True,
         noise_reg=("rule_of_thumb", 1.0),
@@ -107,7 +107,7 @@ def test_map_mode():
 
     map_model = BayesianNFEstimator(
         3,
-        flow_types=("planar", "radial", "affine"),
+        n_flows=3,
         hidden_sizes=(16, 16),
         trainable_base_dist=True,
         noise_reg=("rule_of_thumb", 1.0),
@@ -118,7 +118,7 @@ def test_map_mode():
 
     bayes_model = BayesianNFEstimator(
         3,
-        flow_types=("planar", "radial", "affine"),
+        n_flows=3,
         hidden_sizes=(16, 16),
         trainable_base_dist=True,
         noise_reg=("rule_of_thumb", 1.0),
@@ -137,7 +137,7 @@ def test_bayesian_nn_on_gaussian():
 
     model = BayesianNFEstimator(
         1,
-        flow_types=tuple(),
+        n_flows=0,
         kl_weight_scale=1.0 / x_train.shape[0],
         hidden_sizes=(10,),
         activation="tanh",
@@ -177,7 +177,7 @@ def test_bimodal_gaussian():
 
     model = BayesianNFEstimator(
         1,
-        flow_types=("radial",),
+        n_flows=1,
         learning_rate=0.02,
         hidden_sizes=(10,),
         kl_weight_scale=1.0 / x_train.shape[0],

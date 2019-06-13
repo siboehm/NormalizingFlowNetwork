@@ -12,7 +12,7 @@ class BayesianNFEstimator(BaseNFEstimator):
         n_dims,
         kl_weight_scale=1.0,
         kl_use_exact=True,
-        flow_types=("radial", "radial"),
+        n_flows=2,
         hidden_sizes=(10,),
         trainable_base_dist=True,
         activation="tanh",
@@ -26,7 +26,7 @@ class BayesianNFEstimator(BaseNFEstimator):
         A bayesian net parametrizing a normalizing flow distribution
         :param n_dims: The dimension of the output distribution
         :param kl_weight_scale: Scales how much KL(posterior|prior) influence the loss
-        :param flow_types: tuple of flows to use
+        :param n_flows: The number of flows to use
         :param hidden_sizes: size and depth of net
         :param trainable_base_dist: whether to train the base normal dist
         :param noise_reg: Tuple with (type_of_reg, scale_factor)
@@ -38,7 +38,7 @@ class BayesianNFEstimator(BaseNFEstimator):
         self.y_noise_std = tf.Variable(initial_value=0.0, dtype=tf.float32, trainable=False)
 
         dist_layer = InverseNormalizingFlowLayer(
-            flow_types=flow_types, n_dims=n_dims, trainable_base_dist=trainable_base_dist
+            flow_types=["radial"] * n_flows, n_dims=n_dims, trainable_base_dist=trainable_base_dist
         )
 
         posterior = self._get_posterior_fn(map_mode=map_mode)
@@ -67,7 +67,7 @@ class BayesianNFEstimator(BaseNFEstimator):
         n_dims=1,
         kl_weight_scale=1.0,
         kl_use_exact=True,
-        flow_types=("radial", "radial"),
+        n_flows=2,
         hidden_sizes=(10,),
         trainable_base_dist=True,
         activation="tanh",
@@ -82,7 +82,7 @@ class BayesianNFEstimator(BaseNFEstimator):
             n_dims=n_dims,
             kl_weight_scale=kl_weight_scale,
             kl_use_exact=kl_use_exact,
-            flow_types=flow_types,
+            n_flows=n_flows,
             hidden_sizes=hidden_sizes,
             trainable_base_dist=trainable_base_dist,
             activation=activation,

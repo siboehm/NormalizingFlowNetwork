@@ -10,7 +10,7 @@ class MaximumLikelihoodNFEstimator(BaseNFEstimator):
     def __init__(
         self,
         n_dims,
-        flow_types=("radial", "radial"),
+        n_flows=2,
         hidden_sizes=(16, 16),
         trainable_base_dist=True,
         noise_reg=("fixed_rate", 0.0),
@@ -24,7 +24,7 @@ class MaximumLikelihoodNFEstimator(BaseNFEstimator):
         assert len(noise_reg) == 2
 
         dist_layer = InverseNormalizingFlowLayer(
-            flow_types=flow_types, n_dims=n_dims, trainable_base_dist=trainable_base_dist
+            flow_types=["radial"] * n_flows, n_dims=n_dims, trainable_base_dist=trainable_base_dist
         )
         dense_layers = self._get_dense_layers(
             hidden_sizes=hidden_sizes,
@@ -44,7 +44,7 @@ class MaximumLikelihoodNFEstimator(BaseNFEstimator):
     @staticmethod
     def build_function(
         n_dims=1,
-        flow_types=("radial", "radial"),
+        n_flows=n_flows,
         hidden_sizes=(16, 16),
         trainable_base_dist=True,
         noise_reg=("fixed_rate", 0.0),
@@ -55,7 +55,7 @@ class MaximumLikelihoodNFEstimator(BaseNFEstimator):
         tf.keras.backend.clear_session()
         return MaximumLikelihoodNFEstimator(
             n_dims=n_dims,
-            flow_types=flow_types,
+            n_flows=n_flows,
             hidden_sizes=hidden_sizes,
             trainable_base_dist=trainable_base_dist,
             noise_reg=noise_reg,

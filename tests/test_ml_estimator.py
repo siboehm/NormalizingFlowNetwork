@@ -24,10 +24,7 @@ def test_model_output_dims_1d():
     y_train = np.linspace(-1, 1, 10).reshape((10, 1))
 
     m1 = MaximumLikelihoodNFEstimator(
-        1,
-        flow_types=("radial", "affine", "planar"),
-        hidden_sizes=(16, 16),
-        trainable_base_dist=False,
+        1, n_flows=3, hidden_sizes=(16, 16), trainable_base_dist=False
     )
     m1.fit(x_train, y_train, epochs=1, verbose=0)
     output = m1(x_train)
@@ -41,9 +38,7 @@ def test_model_output_dims_1d_2():
     x_train = np.linspace(-1, 1, 10).reshape((10, 1))
     y_train = np.linspace(-1, 1, 10).reshape((10, 1))
 
-    m1 = MaximumLikelihoodNFEstimator(
-        1, flow_types=tuple(), hidden_sizes=(16, 16), trainable_base_dist=True
-    )
+    m1 = MaximumLikelihoodNFEstimator(1, n_flows=0, hidden_sizes=(16, 16), trainable_base_dist=True)
     m1.fit(x_train, y_train, epochs=1, verbose=0)
     output = m1(x_train)
     assert isinstance(output, tfd.TransformedDistribution)
@@ -56,12 +51,7 @@ def test_model_ouput_dims_3d():
     x_train = np.linspace([[-1]] * 3, [[1]] * 3, 10).reshape((10, 3))
     y_train = np.linspace([[-1]] * 3, [[1]] * 3, 10).reshape((10, 3))
 
-    m1 = MaximumLikelihoodNFEstimator(
-        3,
-        flow_types=("radial", "affine", "planar"),
-        hidden_sizes=(16, 16),
-        trainable_base_dist=True,
-    )
+    m1 = MaximumLikelihoodNFEstimator(3, n_flows=3, hidden_sizes=(16, 16), trainable_base_dist=True)
     m1.fit(x_train, y_train, epochs=1, verbose=0)
     output = m1(x_train)
     assert isinstance(output, tfd.TransformedDistribution)
@@ -77,11 +67,7 @@ def test_x_noise_reg():
     y_train = noise.sample().numpy()
 
     too_much_noise = MaximumLikelihoodNFEstimator(
-        1,
-        flow_types=("radial", "radial"),
-        hidden_sizes=(16, 16),
-        noise_reg=("fixed_rate", 3.0),
-        trainable_base_dist=True,
+        1, n_flows=2, hidden_sizes=(16, 16), noise_reg=("fixed_rate", 3.0), trainable_base_dist=True
     )
 
     too_much_noise.fit(x_train, y_train, epochs=700, verbose=0)
@@ -96,7 +82,7 @@ def test_x_noise_reg():
 
     little_noise = MaximumLikelihoodNFEstimator(
         1,
-        flow_types=("radial", "radial"),
+        n_flows=2,
         hidden_sizes=(16, 16),
         noise_reg=("rule_of_thumb", 0.1),
         trainable_base_dist=True,
@@ -113,11 +99,7 @@ def test_y_noise_reg():
     y_train = np.linspace([[-1]] * 3, [[1]] * 3, 10, dtype=np.float32).reshape((10, 3))
 
     noise = MaximumLikelihoodNFEstimator(
-        3,
-        flow_types=("planar", "radial", "affine"),
-        hidden_sizes=(16, 16),
-        trainable_base_dist=True,
-        noise_reg=("fixed_rate", 1.0),
+        3, n_flows=3, hidden_sizes=(16, 16), trainable_base_dist=True, noise_reg=("fixed_rate", 1.0)
     )
     noise.fit(x_train, y_train, epochs=10, verbose=0)
 
@@ -143,7 +125,7 @@ def test_on_gaussian():
     y_train = noise.sample().numpy()
 
     model = MaximumLikelihoodNFEstimator(
-        1, flow_types=("radial", "radial"), hidden_sizes=(16, 16), trainable_base_dist=True
+        1, n_flows=2, hidden_sizes=(16, 16), trainable_base_dist=True
     )
     model.fit(x_train, y_train, epochs=800, verbose=0)
 
@@ -172,10 +154,7 @@ def test_bimodal_gaussian():
     x_train, y_train, _ = get_data()
 
     model = MaximumLikelihoodNFEstimator(
-        1,
-        flow_types=("radial", "radial", "radial"),
-        hidden_sizes=(10, 10),
-        trainable_base_dist=True,
+        1, n_flows=3, hidden_sizes=(10, 10), trainable_base_dist=True
     )
 
     model.fit(x_train, y_train, epochs=700, verbose=0)
