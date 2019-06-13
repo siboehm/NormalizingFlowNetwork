@@ -42,10 +42,7 @@ class MeanFieldLayer(tfp.layers.DistributionLambda):
                 return tfd.Independent(
                     tfd.Normal(
                         loc=t[..., 0:n_dims],
-                        scale=1e-5
-                        + tf.nn.softplus(
-                            tf.math.log(tf.math.expm1(1.0)) + t[..., n_dims : 2 * n_dims]
-                        ),
+                        scale=1e-5 + tf.nn.softplus(t[..., n_dims : 2 * n_dims]),
                     ),
                     reinterpreted_batch_ndims=1,
                 )

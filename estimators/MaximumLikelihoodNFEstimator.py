@@ -44,7 +44,7 @@ class MaximumLikelihoodNFEstimator(BaseNFEstimator):
     @staticmethod
     def build_function(
         n_dims=1,
-        n_flows=n_flows,
+        n_flows=3,
         hidden_sizes=(16, 16),
         trainable_base_dist=True,
         noise_reg=("fixed_rate", 0.0),

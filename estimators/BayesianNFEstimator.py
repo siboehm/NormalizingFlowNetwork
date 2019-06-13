@@ -2,6 +2,7 @@ import tensorflow as tf
 import tensorflow_probability as tfp
 from estimators.DistributionLayers import InverseNormalizingFlowLayer, MeanFieldLayer
 from estimators.BaseNFEstimator import BaseNFEstimator
+import numpy as np
 
 tfd = tfp.distributions
 
@@ -112,7 +113,13 @@ class BayesianNFEstimator(BaseNFEstimator):
             size = kernel_size + bias_size
             layers = [
                 tfp.layers.VariableLayer(
-                    2 * size, initializer="normal", dtype=dtype, trainable=True
+                    2 * size,
+                    initializer=tfp.layers.BlockwiseInitializer(
+                        ["zeros", tf.keras.initializers.Constant(np.log(np.expm1(1.0)))],
+                        sizes=[size, size],
+                    ),
+                    dtype=dtype,
+                    trainable=True,
                 ),
                 MeanFieldLayer(size, scale=None, map_mode=map_mode, dtype=dtype),
             ]
