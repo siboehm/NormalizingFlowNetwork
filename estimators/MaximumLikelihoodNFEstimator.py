@@ -1,9 +1,9 @@
 import tensorflow as tf
 import tensorflow_probability as tfp
-
-tfd = tfp.distributions
 from estimators.DistributionLayers import InverseNormalizingFlowLayer
 from estimators.BaseNFEstimator import BaseNFEstimator
+
+tfd = tfp.distributions
 
 
 class MaximumLikelihoodNFEstimator(BaseNFEstimator):
@@ -37,8 +37,7 @@ class MaximumLikelihoodNFEstimator(BaseNFEstimator):
         )
 
         self.compile(
-            optimizer=tf.compat.v2.optimizers.Adam(learning_rate),
-            loss=self._get_neg_log_likelihood(),
+            optimizer=tf.keras.optimizers.Adam(learning_rate), loss=self._get_neg_log_likelihood()
         )
 
     @staticmethod

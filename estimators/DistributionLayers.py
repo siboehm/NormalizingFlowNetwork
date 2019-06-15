@@ -12,22 +12,25 @@ tfd = tfp.distributions
 
 
 class MeanFieldLayer(tfp.layers.DistributionLambda):
-    n_dims, scale = None, None
-
     def __init__(self, n_dims, scale=None, map_mode=False, dtype=None):
         """
         A subclass of Distribution Lambda. A layer that uses it's input to parametrize n_dims-many indepentent normal
         distributions (aka mean field)
         Requires input size n_dims for fixed scale, 2*n_dims for trainable scale
         Mean Field also works for scalars
+        The input tensors for this layer should be initialized to Zero for a standard normal distribution
         :param n_dims: Dimension of the distribution that's being output by the Layer
         :param scale: (float) None if scale should be trainable. If not None, specifies the fixed scale of the
-            independent normals
+            independent normals. If map mode is activated, this is ignored and set to 1.0
         """
         self.n_dims = n_dims
         self.scale = scale
+
+        if map_mode:
+            self.scale = 1.0
         convert_ttf = tfd.Distribution.mean if map_mode else tfd.Distribution.sample
-        make_dist_fn = self._get_distribution_fn(n_dims, scale)
+
+        make_dist_fn = self._get_distribution_fn(self.n_dims, self.scale)
 
         super().__init__(
             make_distribution_fn=make_dist_fn, convert_to_tensor_fn=convert_ttf, dtype=dtype
@@ -42,7 +45,10 @@ class MeanFieldLayer(tfp.layers.DistributionLambda):
                 return tfd.Independent(
                     tfd.Normal(
                         loc=t[..., 0:n_dims],
-                        scale=1e-5 + tf.nn.softplus(t[..., n_dims : 2 * n_dims]),
+                        scale=1e-3
+                        + tf.nn.softplus(
+                            tf.math.log(tf.math.expm1(1.0)) + 0.05 * t[..., n_dims : 2 * n_dims]
+                        ),
                     ),
                     reinterpreted_batch_ndims=1,
                 )
@@ -85,7 +91,7 @@ class InverseNormalizingFlowLayer(tfp.layers.DistributionLambda):
         # as keras transforms tensors, this layer needs to have an tensor-like output
         # therefore a function needs to be provided that transforms a distribution into a tensor
         # per default the .sample() function is used, but our reversed flows cannot perform that operation
-        convert_ttfn = lambda d: d.log_prob([1.0] * n_dims)
+        convert_ttfn = lambda d: tf.zeros(n_dims)
         make_flow_dist = self._get_distribution_fn(n_dims, flow_types, trainable_base_dist)
         super().__init__(make_distribution_fn=make_flow_dist, convert_to_tensor_fn=convert_ttfn)
 
@@ -126,7 +132,10 @@ class InverseNormalizingFlowLayer(tfp.layers.DistributionLambda):
         if trainable:
             return tfd.MultivariateNormalDiag(
                 loc=t[..., 0:n_dims],
-                scale_diag=tf.math.softplus(0.05 * t[..., n_dims : 2 * n_dims]),
+                scale_diag=1e-3
+                + tf.math.softplus(
+                    tf.math.log(tf.math.expm1(1.0)) + 0.05 * t[..., n_dims : 2 * n_dims]
+                ),
             )
         else:
             # we still need to know the batch size, therefore we need t for reference

@@ -50,8 +50,8 @@ class InvertedPlanarFlow(tfp.bijectors.Bijector):
         """
         wtu = tf.math.reduce_sum(w * u, 1, keepdims=True)
         # add constant to make it more numerically stable
-        m_wtu = -1.0 + tf.nn.softplus(wtu) + 1e-3
-        norm_w_squared = tf.math.reduce_sum(w ** 2, 1, keepdims=True)
+        m_wtu = -1.0 + tf.nn.softplus(wtu) + 1e-5
+        norm_w_squared = tf.math.reduce_sum(w ** 2, 1, keepdims=True) + 1e-6
         return u + (m_wtu - wtu) * (w / norm_w_squared)
 
     def _wzb(self, z):

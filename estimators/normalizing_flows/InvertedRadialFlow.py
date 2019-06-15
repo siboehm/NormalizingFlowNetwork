@@ -30,10 +30,15 @@ class InvertedRadialFlow(tfp.bijectors.Bijector):
         )
 
         assert t.shape[-1] == n_dims + 2
-        alpha, beta, gamma = t[..., 0:1], t[..., 1:2], t[..., 2 : n_dims + 2]
-        # constraining the parameters before they are assigned to ensure invertibility
-        self._alpha = self._alpha_circ(alpha)
-        self._beta = self._beta_circ(beta)
+        alpha = t[..., 0:1]
+        beta = t[..., 1:2]
+        gamma = t[..., 2 : n_dims + 2]
+
+        # constraining the parameters before they are assigned to ensure invertibility.
+        # slightly shift alpha, softmax(zero centered input - 2) = small
+        self._alpha = self._alpha_circ(0.3 * alpha - 2.0)
+        # slightly shift beta, softmax(zero centered input + ln(e - 1)) = 0
+        self._beta = self._beta_circ(0.1 * beta + tf.math.log(tf.math.expm1(1.0)))
         self._gamma = gamma
 
     @staticmethod
@@ -84,4 +89,4 @@ class InvertedRadialFlow(tfp.bijectors.Bijector):
         """
         Method for constraining the beta parameter to meet the invertibility requirements
         """
-        return tf.exp(beta) - 1.0
+        return tf.nn.softplus(beta) - 1.0

@@ -11,7 +11,7 @@ class BayesianNFEstimator(BaseNFEstimator):
     def __init__(
         self,
         n_dims,
-        kl_weight_scale=1.0,
+        kl_weight_scale,
         kl_use_exact=True,
         n_flows=2,
         hidden_sizes=(10,),
@@ -26,7 +26,7 @@ class BayesianNFEstimator(BaseNFEstimator):
         """
         A bayesian net parametrizing a normalizing flow distribution
         :param n_dims: The dimension of the output distribution
-        :param kl_weight_scale: Scales how much KL(posterior|prior) influence the loss
+        :param kl_weight_scale: Scales how much KL(posterior|prior) influences the loss
         :param n_flows: The number of flows to use
         :param hidden_sizes: size and depth of net
         :param trainable_base_dist: whether to train the base normal dist
@@ -34,6 +34,9 @@ class BayesianNFEstimator(BaseNFEstimator):
         :param trainable_prior: empirical bayes
         :param map_mode: If true, will use the mean of the posterior instead of a sample. Default False
         :param prior_scale: The scale of the zero centered priors
+
+        A note on kl_weight_scale: Keras calculates the loss per sample and not for the full dataset. Therefore,
+        we need to scale the KL(q||p) loss down to a single sample, which means setting kl_weight_scale = 1/n_datapoints
         """
         self.x_noise_std = tf.Variable(initial_value=0.0, dtype=tf.float32, trainable=False)
         self.y_noise_std = tf.Variable(initial_value=0.0, dtype=tf.float32, trainable=False)
@@ -59,8 +62,7 @@ class BayesianNFEstimator(BaseNFEstimator):
         )
 
         self.compile(
-            optimizer=tf.compat.v2.optimizers.Adam(learning_rate),
-            loss=self._get_neg_log_likelihood(),
+            optimizer=tf.keras.optimizers.Adam(learning_rate), loss=self._get_neg_log_likelihood()
         )
 
     @staticmethod
@@ -101,7 +103,7 @@ class BayesianNFEstimator(BaseNFEstimator):
                 tfp.layers.VariableLayer(
                     shape=size, initializer="zeros", dtype=dtype, trainable=trainable
                 ),
-                MeanFieldLayer(size, scale=prior_scale, dtype=dtype),
+                MeanFieldLayer(size, scale=prior_scale, map_mode=False, dtype=dtype),
             ]
             return tf.keras.Sequential(layers)
 
@@ -113,13 +115,7 @@ class BayesianNFEstimator(BaseNFEstimator):
             size = kernel_size + bias_size
             layers = [
                 tfp.layers.VariableLayer(
-                    2 * size,
-                    initializer=tfp.layers.BlockwiseInitializer(
-                        ["zeros", tf.keras.initializers.Constant(np.log(np.expm1(1.0)))],
-                        sizes=[size, size],
-                    ),
-                    dtype=dtype,
-                    trainable=True,
+                    size if map_mode else 2 * size, initializer="zeros", dtype=dtype, trainable=True
                 ),
                 MeanFieldLayer(size, scale=None, map_mode=map_mode, dtype=dtype),
             ]
@@ -134,7 +130,7 @@ class BayesianNFEstimator(BaseNFEstimator):
         posterior,
         prior,
         kl_weight_scale=1.0,
-        kl_use_exact=False,
+        kl_use_exact=True,
         activation="relu",
     ):
         assert type(hidden_sizes) == tuple or type(hidden_sizes) == list

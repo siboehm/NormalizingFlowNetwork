@@ -11,7 +11,7 @@ if not tf2.enabled():
 import numpy as np
 import matplotlib.pyplot as plt
 from simulation.dummy_data_gen import gen_cosine_noise_data
-from estimators import MaximumLikelihoodNFEstimator
+from estimators import MaximumLikelihoodNFEstimator, BayesianNFEstimator
 
 from evaluation.visualization.flow_plotting import plot_model
 
@@ -28,32 +28,27 @@ plt.scatter(x_train, y_train)
 # plt.show()
 
 
-# model = BayesianNFEstimator(
+model = BayesianNFEstimator(
+    n_dims=1,
+    kl_weight_scale=1.0 / x_train.shape[0],
+    n_flows=5,
+    hidden_sizes=(10,),
+    trainable_base_dist=True,
+    activation="tanh",
+    trainable_prior=False,
+    kl_use_exact=True,
+    map_mode=True,
+)
+# model = MaximumLikelihoodNFEstimator(
 #     n_dims=1,
-#     kl_weight_scale=1.0 / x_train.shape[0],
-#     flow_types=("radial",),
-#     hidden_sizes=(10,),
-#     trainable_base_dist=True,
-#     activation="tanh",
-#     trainable_prior=False,
+#     n_flows=5,
+#     hidden_sizes=(16, 16),
+#     trainable_base_dist=False,
+#     noise_reg=("rule_of_thumb", 0.1),
 # )
-ml_model = MaximumLikelihoodNFEstimator(
-    n_dims=1,
-    flow_types=("radial", "radial"),
-    hidden_sizes=(16, 16),
-    trainable_base_dist=False,
-    noise_reg=("rule_of_thumb", 0.1),
-)
-ml_model.fit(x_train, y_train, epochs=20, verbose=2)
-ml_model = MaximumLikelihoodNFEstimator(
-    n_dims=1,
-    flow_types=("radial", "radial"),
-    hidden_sizes=(16, 16),
-    trainable_base_dist=False,
-)
-ml_model.fit(x_train, y_train, epochs=20, verbose=2)
+model.fit(x_train, y_train, epochs=1000, verbose=2)
 
 x_swoop = np.linspace(-4, 4, num=100).reshape((100, 1))
 for _ in range(1):
-    plot_model(x_swoop, ml_model, y_num=100, y_range=[-6, 6])
+    plot_model(x_swoop, model, y_num=100, y_range=[-6, 6])
     plt.show()

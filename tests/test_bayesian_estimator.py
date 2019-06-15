@@ -10,7 +10,7 @@ np.random.seed(22)
 
 
 def test_dense_layer_generation():
-    layers = BayesianNFEstimator(1)._get_dense_layers(
+    layers = BayesianNFEstimator(1, 1.0)._get_dense_layers(
         hidden_sizes=(2, 2, 2), output_size=2, posterior=None, prior=None
     )
     assert len(layers) == 6
@@ -82,6 +82,7 @@ def test_y_noise_reg():
 
     noise = BayesianNFEstimator(
         3,
+        kl_weight_scale=1.0 / x_train.shape[0],
         n_flows=3,
         hidden_sizes=(16, 16),
         trainable_base_dist=True,
@@ -107,6 +108,7 @@ def test_map_mode():
 
     map_model = BayesianNFEstimator(
         3,
+        kl_weight_scale=1.0 / x_train.shape[0],
         n_flows=3,
         hidden_sizes=(16, 16),
         trainable_base_dist=True,
@@ -118,6 +120,7 @@ def test_map_mode():
 
     bayes_model = BayesianNFEstimator(
         3,
+        kl_weight_scale=1.0 / x_train.shape[0],
         n_flows=3,
         hidden_sizes=(16, 16),
         trainable_base_dist=True,
@@ -126,6 +129,24 @@ def test_map_mode():
     )
     bayes_model.fit(x_train, y_train, epochs=10, verbose=0)
     assert bayes_model.evaluate(x_train, y_train) != bayes_model.evaluate(x_train, y_train)
+
+
+def test_bayes_big():
+    x_train = np.linspace([[-1]] * 1, [[1]] * 1, 10, dtype=np.float32).reshape((10, 1))
+    y_train = np.linspace([[-1]] * 1, [[1]] * 1, 10, dtype=np.float32).reshape((10, 1))
+
+    model = BayesianNFEstimator(
+        n_dims=1,
+        kl_weight_scale=0.1,
+        n_flows=5,
+        hidden_sizes=(32, 32),
+        trainable_base_dist=True,
+        activation="tanh",
+        learning_rate=3e-3,
+        map_mode=False,
+    )
+    model.fit(x_train, y_train, epochs=10, verbose=0)
+    assert not np.isnan(model.evaluate(x_train, y_train))
 
 
 @pytest.mark.slow

@@ -29,7 +29,13 @@ def test_bayesian_score():
         -mle.evaluate(x_train, y_train)
     )
 
-    be = BayesianNFEstimator(n_dims=1, n_flows=0, hidden_sizes=(6, 6), trainable_base_dist=True)
+    be = BayesianNFEstimator(
+        n_dims=1,
+        kl_weight_scale=1.0 / x_train.shape[0],
+        n_flows=0,
+        hidden_sizes=(6, 6),
+        trainable_base_dist=True,
+    )
     be.fit(x_train, y_train, epochs=200, verbose=0)
     score = bayesian_log_likelihood_score(DummyWrapper(be), x_train, y_train)
     loss = sum([be.evaluate(x_train, y_train) for _ in range(50)]) / 50

@@ -31,7 +31,8 @@ class BaseNFEstimator(tf.keras.Sequential):
             epochs=epochs,
             verbose=verbose,
             callbacks=[
-                AdaptiveNoiseCallback(self.noise_fn_type, self.noise_scale_factor, ndim_x, ndim_y)
+                AdaptiveNoiseCallback(self.noise_fn_type, self.noise_scale_factor, ndim_x, ndim_y),
+                tf.keras.callbacks.TerminateOnNaN(),
             ],
             **kwargs
         )
