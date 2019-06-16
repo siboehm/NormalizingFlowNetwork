@@ -33,6 +33,7 @@ def create_results_dir(config_filename):
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("run_config", help="name of the run configuation stored in data/local/")
+    parser.add_argument('--n_jobs', type=int, default=-1)
     args = parser.parse_args()
 
     run_config = load_config_file(args.run_config)
@@ -75,4 +76,5 @@ if __name__ == "__main__":
         n_folds=run_config["n_folds"],
         n_datapoints_list=n_datapoints_list,
         results_dir=config_dir_path,
+        n_jobs=args.n_jobs,
     )

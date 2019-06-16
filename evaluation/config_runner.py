@@ -23,7 +23,7 @@ TEST_SIZE = 5 * 10 ** 5
 
 
 def run_configuation(
-    estimator_list, density_list, n_epochs, n_folds, n_datapoints_list, results_dir
+    estimator_list, density_list, n_epochs, n_folds, n_datapoints_list, results_dir, n_jobs
 ):
     for estimator in estimator_list:
         for density_name, density_params in density_list:
@@ -48,7 +48,7 @@ def run_configuation(
                     estimator=model,
                     param_grid=estimator["param_grid"],
                     scoring=estimator["scoring_fn"],
-                    n_jobs=-1,
+                    n_jobs=n_jobs,
                     pre_dispatch="1*n_jobs",
                     iid=True,
                     cv=ShuffleSplit(n_splits=n_folds, train_size=n_datapoints, random_state=22),
