@@ -66,8 +66,8 @@ class BayesianNFEstimator(BaseNFEstimator):
 
     @staticmethod
     def build_function(
-        n_dims=1,
-        kl_weight_scale=1.0,
+        n_dims,
+        kl_weight_scale,
         kl_use_exact=True,
         n_flows=2,
         hidden_sizes=(10,),
@@ -76,6 +76,7 @@ class BayesianNFEstimator(BaseNFEstimator):
         noise_reg=("fixed_rate", 0.0),
         learning_rate=2e-2,
         trainable_prior=False,
+        map_mode=False,
         prior_scale=1.0,
     ):
         # this is necessary, else there'll be processes hanging around hogging memory
@@ -91,6 +92,7 @@ class BayesianNFEstimator(BaseNFEstimator):
             noise_reg=noise_reg,
             learning_rate=learning_rate,
             trainable_prior=trainable_prior,
+            map_mode=map_mode,
             prior_scale=prior_scale,
         )
 
@@ -114,7 +116,10 @@ class BayesianNFEstimator(BaseNFEstimator):
             size = kernel_size + bias_size
             layers = [
                 tfp.layers.VariableLayer(
-                    size if map_mode else 2 * size, initializer="normal", dtype=dtype, trainable=True
+                    size if map_mode else 2 * size,
+                    initializer="normal",
+                    dtype=dtype,
+                    trainable=True,
                 ),
                 MeanFieldLayer(size, scale=None, map_mode=map_mode, dtype=dtype),
             ]
