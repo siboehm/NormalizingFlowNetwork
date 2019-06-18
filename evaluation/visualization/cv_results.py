@@ -2,25 +2,26 @@ from config import DATA_DIR
 import os
 import pandas as pd
 import matplotlib.pyplot as plt
+from matplotlib.pyplot import cm
 import numpy as np
 
 cluster_data_dir = os.path.join(DATA_DIR, "cluster/")
 plots_dir = os.path.join(DATA_DIR, "visualization/")
 score_columns = ["rank_test_score", "mean_test_score", "std_test_score"]
-mle_columns = ["param_hidden_sizes", "param_x_noise_std", "param_y_noise_std"]
+mle_columns = ["param_hidden_sizes", "param_learning_rate", "param_noise_reg"]
 bayes_columns = [
     "param_hidden_sizes",
-    "param_x_noise_std",
-    "param_y_noise_std",
     "param_learning_rate",
-    "param_kl_weight_scale",
     "param_prior_scale",
+    "param_map_mode",
+    "param_noise_reg",
 ]
 
 
 def output_overview(df, file, result_dir):
     filename = file.name.split(".")[0]
     columns = mle_columns if "mle" in filename else bayes_columns
+    columns = [x for x in columns if x in df.columns]
 
     top_10 = df.sort_values("rank_test_score")[score_columns + columns].head(10)
     # top_10.to_latex(os.path.join(result_dir, "{}_top_10.tex".format(filename)))
@@ -41,6 +42,174 @@ def output_overview(df, file, result_dir):
 
     fig.suptitle("Marginalized test scores for every hyperparameter")
     plt.savefig(os.path.join(result_dir, filename + "_" + "hyperparams" + ".png"))
+
+
+def output_metric_scores(df, file, result_dir):
+    densities = df["density"].unique()
+    param_columns = mle_columns if "mle" in file.name else bayes_columns
+    tuned_params = [
+        param for param in param_columns if param in df.columns and len(df[param].unique()) > 1
+    ]
+    test_score_columns = [
+        column
+        for column in df.columns
+        if column.startswith("split") and column.endswith("_test_score")
+    ]
+
+    for param in tuned_params:
+        plot_single_param(densities, df, file, param, result_dir, test_score_columns)
+
+    plot_single_param(
+        densities,
+        df.loc[df["param_map_mode"] == True],
+        file,
+        "param_noise_reg",
+        result_dir,
+        test_score_columns,
+        name_prefix="map_reg",
+    )
+    plot_single_param(
+        densities,
+        df.loc[df["param_map_mode"] == False],
+        file,
+        "param_noise_reg",
+        result_dir,
+        test_score_columns,
+        name_prefix="bayes_reg",
+    )
+    plot_single_param(
+        densities,
+        df.loc[(df["param_map_mode"] == False) & (df["n_datapoints"] > 800)],
+        file,
+        "param_noise_reg",
+        result_dir,
+        test_score_columns,
+        name_prefix="bayes_reg_larger",
+    )
+    plot_single_param(
+        densities,
+        df.loc[(df["param_map_mode"] == False) & (df["n_datapoints"] < 800)],
+        file,
+        "param_noise_reg",
+        result_dir,
+        test_score_columns,
+        name_prefix="bayes_reg_smaller",
+    )
+
+
+def plot_single_param(
+    densities, df, file, param, result_dir, test_score_columns, name_prefix="", log_scale_y=False
+):
+    layout = (1, len(densities))
+    fig, axarr = plt.subplots(*layout, figsize=(12 * len(densities), 4.5))
+    axarr = [axarr] if len(densities) == 1 else axarr
+    n_curves_to_plot = len(df[param].unique())
+    for i, density in enumerate(densities):
+        color_iter = iter(cm.gist_rainbow(np.linspace(0, 1, n_curves_to_plot)))
+        for param_instance in df[param].unique():
+            sub_df = df.loc[(df["density"] == density) & (df[param] == param_instance)]
+
+            n_datapoints = sorted(sub_df["n_datapoints"].unique())
+            means = np.array([], dtype=np.float32)
+            stds = np.array([], dtype=np.float32)
+            for n_data in n_datapoints:
+                scores = []
+                for c in test_score_columns:
+                    scores += list(sub_df.loc[sub_df["n_datapoints"] == n_data][c].values)
+                scores = np.array(scores, dtype=np.float32)
+                means = np.append(means, scores.mean())
+                stds = np.append(stds, scores.std())
+
+            c = next(color_iter)
+
+            axarr[i].plot(
+                n_datapoints,
+                means,
+                color=c,
+                label="{}: {}".format(param.replace("param_", ""), param_instance),
+            )
+            axarr[i].fill_between(n_datapoints, means - stds, means + stds, alpha=0.2, color=c)
+
+        axarr[i].set_xlabel("n_observations")
+        axarr[i].set_ylabel("score")
+        axarr[i].set_title(density)
+        axarr[i].legend()
+        axarr[i].set_xscale("log")
+        if log_scale_y:
+            axarr[i].set_yscale("log")
+    plt.savefig(
+        os.path.join(
+            result_dir,
+            file.name.split(".")[0] + "_" + name_prefix + "_metric_scores_" + param + ".png",
+        )
+    )
+
+
+def plot_best(df, file, result_dir):
+    densities = df["density"].unique()
+    test_score_columns = [
+        column
+        for column in df.columns
+        if column.startswith("split") and column.endswith("_test_score")
+    ]
+    param_columns = mle_columns if "mle" in file.name else bayes_columns
+    layout = (1, len(densities))
+
+    fig, axarr = plt.subplots(*layout, figsize=(12, 4.5 * len(densities)))
+    axarr = [axarr] if len(densities) == 1 else axarr
+    n_curves_to_plot = 2
+
+    for i, density in enumerate(densities):
+        color_iter = iter(cm.gist_rainbow(np.linspace(0, 1, n_curves_to_plot)))
+        best_bay = df.loc[
+            (df["density"] == density)
+            & (df["param_map_mode"] == False)
+            & (df["n_datapoints"] == 800)
+        ].sort_values(by="mean_test_score", ascending=False)
+        best_map = df.loc[
+            (df["density"] == density)
+            & (df["param_map_mode"] == True)
+            & (df["n_datapoints"] == 800)
+        ].sort_values(by="mean_test_score", ascending=False)
+
+        for name, map_mode, best in [("full bayesian", False, best_bay), ("MAP", True, best_map)]:
+            sub_df = df.loc[
+                (df["density"] == density)
+                & (df["param_map_mode"] == map_mode)
+                & (df["param_noise_reg"] == best["param_noise_reg"].values[0])
+            ]
+            n_datapoints = sorted(sub_df["n_datapoints"].unique())
+            means = np.array([], dtype=np.float32)
+            stds = np.array([], dtype=np.float32)
+
+            for n_data in n_datapoints:
+                scores = []
+                for c in test_score_columns:
+                    scores += list(sub_df.loc[sub_df["n_datapoints"] == n_data][c].values)
+                scores = np.array(scores, dtype=np.float32)
+                means = np.append(means, scores.mean())
+                stds = np.append(stds, scores.std())
+
+            c = next(color_iter)
+
+            actual_columns = [p for p in param_columns if p in df.columns]
+            label = " ".join(
+                [name, ":"]
+                + [
+                    "{}: {},".format(col.replace("param_", ""), best[col].values[0])
+                    for col in actual_columns
+                ]
+            )
+            axarr[i].plot(n_datapoints, means, color=c, label=label)
+            axarr[i].fill_between(n_datapoints, means - stds, means + stds, alpha=0.2, color=c)
+
+            axarr[i].set_xlabel("n_observations")
+            axarr[i].set_ylabel("score")
+            axarr[i].set_title(density)
+            axarr[i].legend()
+            axarr[i].set_xscale("log")
+
+        plt.savefig(os.path.join(result_dir, file.name.split(".")[0] + "_" + "best_scorers.png"))
 
 
 def plot_noise_heatplots(df, file, result_dir):
@@ -123,10 +292,8 @@ def plot_cv_results():
         for file in data_files:
             df = pd.read_csv(file.path)
 
-            # hack, there are always a few rogue values and those mess up the plots
-            prev = len(df)
-            df = df[df.mean_test_score > -30]
-            assert len(df) + 15 > prev
-
-            output_overview(df, file, result_dir)
-            plot_noise_heatplots(df, file, result_dir)
+            if (
+                "06-16_16-07" in result_dir or "06-17_22-33" in result_dir
+            ) and file.name == "results.csv":
+                output_metric_scores(df, file, result_dir)
+                plot_best(df, file, result_dir)

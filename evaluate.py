@@ -1,8 +1,6 @@
 import os
-import sys
 
 os.environ["TF_CPP_MIN_LOG_LEVEL"] = "2"
-sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
 import json
 import argparse
@@ -33,7 +31,7 @@ def create_results_dir(config_filename):
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("run_config", help="name of the run configuation stored in data/local/")
-    parser.add_argument('--n_jobs', type=int, default=-1)
+    parser.add_argument("--n_jobs", type=int, default=-1)
     args = parser.parse_args()
 
     run_config = load_config_file(args.run_config)

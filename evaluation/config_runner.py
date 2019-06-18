@@ -14,7 +14,7 @@ if not tf2.enabled():
     assert tf2.enabled()
 
 
-
+# runs the given configuration
 def run_configuation(
     estimator_list, density_list, n_epochs, n_folds, n_datapoints_list, results_dir, n_jobs
 ):
@@ -38,6 +38,7 @@ def run_configuation(
                 p.join()
 
 
+# runs a single cross validation for a given density, estimator and number of datapoints
 def run_cv(
     density_name, density_params, estimator, n_datapoints, n_epochs, n_folds, n_jobs, results_dir
 ):
