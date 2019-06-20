@@ -100,9 +100,13 @@ def output_metric_scores(df, file, result_dir):
 def plot_single_param(
     densities, df, file, param, result_dir, test_score_columns, name_prefix="", log_scale_y=False
 ):
-    layout = (1, len(densities))
-    fig, axarr = plt.subplots(*layout, figsize=(12 * len(densities), 4.5))
-    axarr = [axarr] if len(densities) == 1 else axarr
+    if len(densities) == 1:
+        layout = (1, 1)
+    else:
+        layout = (len(densities) // 2 + 1, 2)
+    fig, axarr = plt.subplots(*layout, figsize=(11 * layout[1], 5 * layout[0]))
+    axarr = [axarr] if len(densities) == 1 else axarr.flatten()
+
     n_curves_to_plot = len(df[param].unique())
     for i, density in enumerate(densities):
         color_iter = iter(cm.gist_rainbow(np.linspace(0, 1, n_curves_to_plot)))
@@ -153,10 +157,13 @@ def plot_best(df, file, result_dir):
         if column.startswith("split") and column.endswith("_test_score")
     ]
     param_columns = mle_columns if "mle" in file.name else bayes_columns
-    layout = (1, len(densities))
+    if len(densities) == 1:
+        layout = (1, 1)
+    else:
+        layout = (len(densities) // 2 + 1, 2)
 
-    fig, axarr = plt.subplots(*layout, figsize=(12, 4.5 * len(densities)))
-    axarr = [axarr] if len(densities) == 1 else axarr
+    fig, axarr = plt.subplots(*layout, figsize=(11 * layout[1], 5 * layout[0]))
+    axarr = [axarr] if len(densities) == 1 else axarr.flatten()
     n_curves_to_plot = 2
 
     for i, density in enumerate(densities):
