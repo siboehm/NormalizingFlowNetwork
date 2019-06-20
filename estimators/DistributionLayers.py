@@ -68,6 +68,48 @@ class MeanFieldLayer(tfp.layers.DistributionLambda):
         return 2 * self.n_dims if self.scale is None else self.n_dims
 
 
+class GaussianMixtureLayer(tfp.layers.DistributionLambda):
+    def __init__(self, n_centers, n_dims):
+        """
+        Subclass of DistributionLambda. A layer that uses it's input to parametrize a mixture of gaussians with
+        variable scales, locs and mixture params.
+        :param n_centers: The amount of guassian to mix
+        :param n_dims: The dimension of the resulting distribution
+        """
+        self._n_centers = n_centers
+        self._n_dims = n_dims
+        make_mixture_dist = self._get_distribution_fn(n_centers, n_dims)
+        super().__init__(make_distribution_fn=make_mixture_dist)
+
+    def get_total_param_size(self):
+        """
+        :return: The total number of parameters to specify this mixture distribution
+        """
+        mixture_params = self._n_centers
+        gaussian_params = 2 * self._n_dims * self._n_centers
+        return mixture_params + gaussian_params
+
+    @staticmethod
+    def _get_distribution_fn(n_centers, n_dims):
+        return lambda t: tfd.Mixture(
+            components=[
+                tfd.MultivariateNormalDiag(
+                    loc=t[..., loc_start : loc_start + n_dims],
+                    scale_diag=tf.nn.softplus(
+                        0.05 * t[..., loc_start + n_dims : loc_start + 2 * n_dims]
+                        + tf.math.log(tf.math.expm1(1.0))
+                    ),
+                )
+                for loc_start in range(0, 2 * n_centers * n_dims, 2 * n_dims)
+            ],
+            cat=tfd.Categorical(
+                probs=tf.nn.softmax(
+                    t[..., 2 * n_centers * n_dims : 2 * n_centers * n_dims + n_centers]
+                )
+            ),
+        )
+
+
 class InverseNormalizingFlowLayer(tfp.layers.DistributionLambda):
     _flow_types = None
     _trainable_base_dist = None

@@ -1,7 +1,11 @@
 import tensorflow as tf
 import pytest
 import tensorflow_probability as tfp
-from estimators.DistributionLayers import InverseNormalizingFlowLayer, MeanFieldLayer
+from estimators.DistributionLayers import (
+    InverseNormalizingFlowLayer,
+    MeanFieldLayer,
+    GaussianMixtureLayer,
+)
 from estimators.normalizing_flows import FLOWS
 
 tfd = tfp.distributions
@@ -23,6 +27,40 @@ def test_total_param_size_mf():
     layer2 = MeanFieldLayer(n_dims=10, scale=10.0)
     assert layer1.get_total_param_size() == 20
     assert layer2.get_total_param_size() == 10
+
+
+def test_total_param_size_mixture():
+    layer1 = GaussianMixtureLayer(n_dims=5, n_centers=5)
+    layer2 = GaussianMixtureLayer(n_dims=1, n_centers=3)
+    assert layer1.get_total_param_size() == 55
+    assert layer2.get_total_param_size() == 9
+
+
+def test_mixture_dist_fn():
+    dist_fn = GaussianMixtureLayer._get_distribution_fn(n_dims=1, n_centers=5)
+    dist = dist_fn(tf.ones((1, 15)))
+    assert dist.event_shape == [1]
+    assert dist.batch_shape == [1]
+
+    dist = dist_fn(tf.ones((3, 15)))
+    assert dist.event_shape == [1]
+    assert dist.batch_shape == [3]
+
+    with pytest.raises(ValueError):
+        dist_fn(tf.ones((10, 10)))
+
+    dist_fn = GaussianMixtureLayer._get_distribution_fn(n_dims=3, n_centers=5)
+
+    dist = dist_fn(tf.ones((1, 35)))
+    assert dist.event_shape == [3]
+    assert dist.batch_shape == [1]
+
+    dist = dist_fn(tf.ones((3, 35)))
+    assert dist.event_shape == [3]
+    assert dist.batch_shape == [3]
+
+    with pytest.raises(ValueError):
+        dist_fn(tf.ones((10, 12)))
 
 
 def test_mf_dist_fn_trainable_scale():

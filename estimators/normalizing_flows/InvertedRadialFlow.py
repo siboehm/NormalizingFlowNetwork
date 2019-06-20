@@ -35,9 +35,9 @@ class InvertedRadialFlow(tfp.bijectors.Bijector):
         gamma = t[..., 2 : n_dims + 2]
 
         # constraining the parameters before they are assigned to ensure invertibility.
-        # slightly shift alpha, softmax(zero centered input - 2) = small
+        # slightly shift alpha, softplus(zero centered input - 2) = small
         self._alpha = self._alpha_circ(0.3 * alpha - 2.0)
-        # slightly shift beta, softmax(zero centered input + ln(e - 1)) = 0
+        # slightly shift beta, softplus(zero centered input + ln(e - 1)) = 0
         self._beta = self._beta_circ(0.1 * beta + tf.math.log(tf.math.expm1(1.0)))
         self._gamma = gamma
 
