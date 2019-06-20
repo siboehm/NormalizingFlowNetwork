@@ -20,7 +20,6 @@ class MaximumLikelihoodNFEstimator(BaseNFEstimator):
         self.x_noise_std = tf.Variable(initial_value=0.0, dtype=tf.float32, trainable=False)
         self.y_noise_std = tf.Variable(initial_value=0.0, dtype=tf.float32, trainable=False)
 
-        assert type(noise_reg) == tuple
         assert len(noise_reg) == 2
 
         dist_layer = InverseNormalizingFlowLayer(

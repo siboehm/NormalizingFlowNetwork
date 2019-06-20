@@ -16,6 +16,7 @@ from evaluation.config_runner import run_configuation
 
 parser = argparse.ArgumentParser()
 parser.add_argument("run_config", help="name of the run configuation stored in data/local/")
+parser.add_argument("--n_jobs", type=int, default=-1)
 args = parser.parse_args()
 
 config_file_path = os.path.join(DATA_DIR, "local/", args.run_config)
@@ -59,6 +60,7 @@ run_configuation(
     density_list=DENSITIES,
     n_epochs=N_TRAINING_EPOCHS,
     n_folds=N_FOLDS,
-    n_datapoints=N_DATAPOINTS,
+    n_datapoints_list=N_DATAPOINTS,
+    n_jobs=args.n_jobs,
     results_dir=config_dir_path,
 )
