@@ -77,24 +77,6 @@ def output_metric_scores(df, file, result_dir):
         test_score_columns,
         name_prefix="bayes_reg",
     )
-    plot_single_param(
-        densities,
-        df.loc[(df["param_map_mode"] == False) & (df["n_datapoints"] > 800)],
-        file,
-        "param_noise_reg",
-        result_dir,
-        test_score_columns,
-        name_prefix="bayes_reg_larger",
-    )
-    plot_single_param(
-        densities,
-        df.loc[(df["param_map_mode"] == False) & (df["n_datapoints"] < 800)],
-        file,
-        "param_noise_reg",
-        result_dir,
-        test_score_columns,
-        name_prefix="bayes_reg_smaller",
-    )
 
 
 def plot_single_param(
@@ -148,8 +130,7 @@ def plot_single_param(
         )
     )
 
-
-def plot_best(df, file, result_dir):
+def plot_map_mle(df, file, result_dir):
     densities = df["density"].unique()
     test_score_columns = [
         column
@@ -168,23 +149,104 @@ def plot_best(df, file, result_dir):
 
     for i, density in enumerate(densities):
         color_iter = iter(cm.gist_rainbow(np.linspace(0, 1, n_curves_to_plot)))
+
+        for name,  estimator in [
+            ("MAP", "bayesian"),
+            ("MLE", "mle"),
+        ]:
+            if estimator == "bayesian":
+                sub_df = df.loc[
+                    (df["density"] == density)
+                    & (df["estimator"] == estimator)
+                    & (df["param_map_mode"])
+                    & (df['param_noise_reg'] == "['fixed_rate', 0.0]")
+                    ]
+            else:
+                sub_df = df.loc[
+                    (df["density"] == density)
+                    & (df["estimator"] == estimator)
+                    & (df['param_noise_reg'] == "['fixed_rate', 0.0]")
+                    ]
+            n_datapoints = sorted(sub_df["n_datapoints"].unique())
+            means = np.array([], dtype=np.float32)
+            stds = np.array([], dtype=np.float32)
+
+            for n_data in n_datapoints:
+                scores = []
+                for c in test_score_columns:
+                    scores += list(sub_df.loc[sub_df["n_datapoints"] == n_data][c].values)
+                scores = np.array(scores, dtype=np.float32)
+                means = np.append(means, scores.mean())
+                stds = np.append(stds, scores.std())
+
+            c = next(color_iter)
+
+            axarr[i].plot(n_datapoints, means, color=c, label=name)
+            axarr[i].fill_between(n_datapoints, means - stds, means + stds, alpha=0.2, color=c)
+
+            axarr[i].set_xlabel("n_observations")
+            axarr[i].set_ylabel("score")
+            axarr[i].set_title(density)
+            axarr[i].legend()
+            axarr[i].set_xscale("log")
+
+        plt.savefig(os.path.join(result_dir, file.name.split(".")[0] + "_" + "map_vs_mle.png"))
+
+def plot_best(df, file, result_dir):
+    densities = df["density"].unique()
+    test_score_columns = [
+        column
+        for column in df.columns
+        if column.startswith("split") and column.endswith("_test_score")
+    ]
+    param_columns = mle_columns if "mle" in file.name else bayes_columns
+    if len(densities) == 1:
+        layout = (1, 1)
+    else:
+        layout = (len(densities) // 2 + 1, 2)
+
+    fig, axarr = plt.subplots(*layout, figsize=(11 * layout[1], 5 * layout[0]))
+    axarr = [axarr] if len(densities) == 1 else axarr.flatten()
+    n_curves_to_plot = 3
+
+    for i, density in enumerate(densities):
+        color_iter = iter(cm.gist_rainbow(np.linspace(0, 1, n_curves_to_plot)))
         best_bay = df.loc[
             (df["density"] == density)
+            & (df["estimator"] == "bayesian")
             & (df["param_map_mode"] == False)
             & (df["n_datapoints"] == 800)
         ].sort_values(by="mean_test_score", ascending=False)
         best_map = df.loc[
             (df["density"] == density)
+            & (df["estimator"] == "bayesian")
             & (df["param_map_mode"] == True)
             & (df["n_datapoints"] == 800)
         ].sort_values(by="mean_test_score", ascending=False)
+        best_mle = df.loc[
+            (df["density"] == density)
+            & (df["estimator"] == "mle")
+            & (df["n_datapoints"] == 800)
+        ].sort_values(by="mean_test_score", ascending=False)
 
-        for name, map_mode, best in [("full bayesian", False, best_bay), ("MAP", True, best_map)]:
-            sub_df = df.loc[
-                (df["density"] == density)
-                & (df["param_map_mode"] == map_mode)
-                & (df["param_noise_reg"] == best["param_noise_reg"].values[0])
-            ]
+        for name, map_mode, estimator, best in [
+            ("full bayesian", False, "bayesian", best_bay),
+            ("MAP", True, "bayesian", best_map),
+            ("MLE", False, "mle", best_mle),
+        ]:
+            if estimator == "bayesian":
+                sub_df = df.loc[
+                    (df["density"] == density)
+                    & (df["estimator"] == estimator)
+                    & (df["param_map_mode"] == map_mode)
+                    & (df["param_noise_reg"] == best["param_noise_reg"].values[0])
+                ]
+            else:
+                sub_df = df.loc[
+                    (df["density"] == density)
+                    & (df["estimator"] == estimator)
+                    & (df["param_noise_reg"] == best["param_noise_reg"].values[0])
+                ]
             n_datapoints = sorted(sub_df["n_datapoints"].unique())
             means = np.array([], dtype=np.float32)
             stds = np.array([], dtype=np.float32)
@@ -299,8 +361,7 @@ def plot_cv_results():
         for file in data_files:
             df = pd.read_csv(file.path)
 
-            if (
-                "06-16_16-07" in result_dir or "06-17_22-33" in result_dir
-            ) and file.name == "results.csv":
-                output_metric_scores(df, file, result_dir)
-                plot_best(df, file, result_dir)
+            if ("06-17_22-33" in result_dir) and file.name == "results.csv":
+                #output_metric_scores(df, file, result_dir)
+                #plot_best(df, file, result_dir)
+                plot_map_mle(df, file, result_dir)
