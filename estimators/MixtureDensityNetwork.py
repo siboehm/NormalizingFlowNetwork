@@ -1,12 +1,12 @@
 import tensorflow as tf
 import tensorflow_probability as tfp
 from estimators.DistributionLayers import GaussianMixtureLayer
-from estimators.BaseNFEstimator import BaseNFEstimator
+from estimators.BaseEstimator import BaseEstimator
 
 tfd = tfp.distributions
 
 
-class MixtureDensityNetwork(BaseNFEstimator):
+class MixtureDensityNetwork(BaseEstimator):
     def __init__(
         self,
         n_dims,

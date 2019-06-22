@@ -5,8 +5,10 @@ from estimators.DistributionLayers import (
     InverseNormalizingFlowLayer,
     MeanFieldLayer,
     GaussianMixtureLayer,
+    GaussianKernelsLayer,
 )
 from estimators.normalizing_flows import FLOWS
+import numpy as np
 
 tfd = tfp.distributions
 
@@ -94,6 +96,59 @@ def test_mf_dist_fn_fixed_scale():
 
     with pytest.raises(AssertionError):
         dist_fn(tf.ones((10, 9)))
+
+
+def test_gk_dist_fn():
+    y_train = np.linspace(-1, 1, 100).reshape((100, 1))
+
+    layer = GaussianKernelsLayer(
+        n_centers=10, n_dims=1, trainable_scale=True, init_scales=(0.3, 0.7)
+    )
+    assert layer.get_total_param_size() == 20
+
+    dist_fn = layer._get_distribution_fn()
+
+    assert np.all(layer.locs[0].numpy() == [0.0])
+    layer.set_center_points(y_train)
+    assert not np.any(layer.locs[0].numpy() == [0.0])
+
+    dist = dist_fn(tf.ones((1, 20)))
+    assert dist.event_shape == [1]
+    assert dist.batch_shape == [1]
+    assert dist.sample().shape == (1, 1)
+
+    dist = dist_fn(tf.ones((3, 20)))
+    assert dist.event_shape == [1]
+    assert dist.batch_shape == [3]
+    assert dist.sample().shape == (3, 1)
+
+    with pytest.raises(AssertionError):
+        dist_fn(tf.ones((10, 19)))
+
+    y_train = np.linspace(-1, 1, 200).reshape((100, 2))
+    layer = GaussianKernelsLayer(
+        n_centers=10, n_dims=2, trainable_scale=True, init_scales=(0.3, 0.7)
+    )
+    assert layer.get_total_param_size() == 20
+
+    dist_fn = layer._get_distribution_fn()
+
+    assert np.all(layer.locs[0].numpy() == [[0.0, 0.0]])
+    layer.set_center_points(y_train)
+    assert not np.any(layer.locs[0].numpy() == [[0.0, 0.0]])
+
+    dist = dist_fn(tf.ones((1, 20)))
+    assert dist.event_shape == [2]
+    assert dist.batch_shape == [1]
+    assert dist.sample().shape == (1, 2)
+
+    dist = dist_fn(tf.ones((3, 20)))
+    assert dist.event_shape == [2]
+    assert dist.batch_shape == [3]
+    assert dist.sample().shape == (3, 2)
+
+    with pytest.raises(AssertionError):
+        dist_fn(tf.ones((10, 19)))
 
 
 def test_nf_dist_fn():

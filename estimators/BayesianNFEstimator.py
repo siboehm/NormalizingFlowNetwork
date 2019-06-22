@@ -1,12 +1,12 @@
 import tensorflow as tf
 import tensorflow_probability as tfp
 from estimators.DistributionLayers import InverseNormalizingFlowLayer, MeanFieldLayer
-from estimators.BaseNFEstimator import BaseNFEstimator
+from estimators.BaseEstimator import BaseEstimator
 
 tfd = tfp.distributions
 
 
-class BayesianNFEstimator(BaseNFEstimator):
+class BayesianNFEstimator(BaseEstimator):
     def __init__(
         self,
         n_dims,

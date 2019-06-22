@@ -6,7 +6,7 @@ from estimators.AdaptiveNoiseCallback import AdaptiveNoiseCallback
 tfd = tfp.distributions
 
 
-class BaseNFEstimator(tf.keras.Sequential):
+class BaseEstimator(tf.keras.Sequential):
     def __init__(self, layers, noise_fn_type="fixed_rate", noise_scale_factor=0.0):
         # data normalization
         self.x_mean = [0.0]

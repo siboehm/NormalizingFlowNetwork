@@ -1,6 +1,9 @@
 import tensorflow as tf
 import tensorflow_probability as tfp
 from tensorflow.python import tf2
+import numpy as np
+from sklearn.cluster import KMeans
+from sklearn.metrics.pairwise import euclidean_distances, cosine_distances
 from estimators.normalizing_flows import FLOWS
 
 if not tf2.enabled():
@@ -66,6 +69,84 @@ class MeanFieldLayer(tfp.layers.DistributionLambda):
 
     def get_total_param_size(self):
         return 2 * self.n_dims if self.scale is None else self.n_dims
+
+
+class GaussianKernelsLayer(tfp.layers.DistributionLambda):
+    def __init__(self, n_centers, n_dims, trainable_scale=True, init_scales=(0.3, 0.7)):
+        self.n_centers = n_centers
+        self.n_scales = len(init_scales)
+        self.n_dims = n_dims
+        self.trainable_scale = trainable_scale
+
+        self.locs = [
+            tf.Variable(initial_value=np.zeros((1, n_dims)), dtype=tf.float32, trainable=False)
+            for _ in range(n_centers)
+        ]
+
+        self.scales = [
+            tf.Variable(initial_value=scale, dtype=tf.float32, trainable=trainable_scale)
+            for scale in tf.math.log(tf.math.expm1(init_scales))
+        ]
+        assert len(self.scales) == len(init_scales)
+        super().__init__(make_distribution_fn=self._get_distribution_fn())
+
+    def get_total_param_size(self):
+        """
+        :return: The total number of parameters to specify this distribution
+        """
+        return self.n_centers * self.n_scales
+
+    def _get_distribution_fn(self):
+        def dist(t):
+            assert t.shape[-1] == self.n_centers * self.n_scales
+            return tfd.Mixture(
+                components=[
+                    tfd.MultivariateNormalDiag(
+                        loc=loc * tf.ones_like(t[..., 0 : self.n_dims]),
+                        scale_identity_multiplier=tf.nn.softplus(scale),
+                    )
+                    for loc in self.locs
+                    for scale in self.scales
+                ],
+                cat=tfd.Categorical(logits=t[..., 0 : self.n_centers * self.n_scales]),
+            )
+
+        return dist
+
+    def set_center_points(self, y):
+        ndim_y = y.shape[1]
+        n_edge_points = min(2 * ndim_y, self.n_centers // 2)
+
+        # select 2*n_edge_points that are the farthest away from mean
+        fathest_points_idx = np.argsort(np.linalg.norm(y - y.mean(axis=0), axis=1))[
+            -2 * n_edge_points :
+        ]
+        Y_farthest = y[np.ix_(fathest_points_idx)]
+
+        # choose points among Y farthest so that pairwise cosine similarity maximized
+        dists = cosine_distances(Y_farthest)
+        selected_indices = [0]
+        for _ in range(1, n_edge_points):
+            idx_greatest_distance = np.argsort(
+                np.min(dists[np.ix_(range(Y_farthest.shape[0]), selected_indices)], axis=1), axis=0
+            )[-1]
+            selected_indices.append(idx_greatest_distance)
+        centers_at_edges = Y_farthest[np.ix_(selected_indices)]
+
+        # remove selected centers from Y
+        indices_to_remove = fathest_points_idx[np.ix_(selected_indices)]
+        y = np.delete(y, indices_to_remove, axis=0)
+
+        # adjust k such that the final output has size k
+        k = self.n_centers - n_edge_points
+
+        model = KMeans(n_clusters=k, n_jobs=-2)
+        model.fit(y)
+        cluster_centers = model.cluster_centers_
+        cluster_centers = np.concatenate([centers_at_edges, cluster_centers], axis=0)
+
+        for loc, val in zip(self.locs, cluster_centers):
+            loc.assign(tf.expand_dims(np.float32(val), axis=0))
 
 
 class GaussianMixtureLayer(tfp.layers.DistributionLambda):
