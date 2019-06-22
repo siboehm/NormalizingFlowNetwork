@@ -1,7 +1,7 @@
 import tensorflow as tf
 import tensorflow_probability as tfp
 import numpy as np
-from estimators import BayesianNFEstimator, MaximumLikelihoodNFEstimator
+from estimators import BayesianNFEstimator, NormalizingFlowEstimator
 from evaluation.scorers import bayesian_log_likelihood_score, mle_log_likelihood_score
 import pytest
 
@@ -21,7 +21,7 @@ def test_bayesian_score():
     )
     y_train = noise.sample().numpy()
 
-    mle = MaximumLikelihoodNFEstimator(1, n_flows=0, hidden_sizes=(6, 6), trainable_base_dist=True)
+    mle = NormalizingFlowEstimator(1, n_flows=0, hidden_sizes=(6, 6), trainable_base_dist=True)
     mle.fit(x_train, y_train, epochs=20, verbose=0)
     # deterministic, so should be the same
     # mle furthermore has no regularisation loss / KL-divs added, therefore evaluate and nll are the same
@@ -47,7 +47,7 @@ def test_mle_score():
     x_train = np.linspace(-1, 1, 10).reshape((10, 1))
     y_train = np.linspace(-1, 1, 10).reshape((10, 1))
 
-    mle = MaximumLikelihoodNFEstimator(1, n_flows=0, hidden_sizes=(6, 6), trainable_base_dist=True)
+    mle = NormalizingFlowEstimator(1, n_flows=0, hidden_sizes=(6, 6), trainable_base_dist=True)
     mle.fit(x_train, y_train, epochs=10, verbose=0)
     # deterministic, so should be the same
     assert mle_log_likelihood_score(DummyWrapper(mle), x_train, y_train) == pytest.approx(

@@ -2,7 +2,7 @@ import tensorflow as tf
 import tensorflow_probability as tfp
 import pytest
 import numpy as np
-from estimators import MaximumLikelihoodNFEstimator, MixtureDensityNetwork, KernelMixtureNetwork
+from estimators import NormalizingFlowEstimator, MixtureDensityNetwork, KernelMixtureNetwork
 
 tfd = tfp.distributions
 tf.random.set_random_seed(22)
@@ -10,7 +10,7 @@ np.random.seed(22)
 
 
 def test_dense_layer_generation():
-    layers = MaximumLikelihoodNFEstimator(1)._get_dense_layers(
+    layers = NormalizingFlowEstimator(1)._get_dense_layers(
         hidden_sizes=(2, 2, 2), output_size=2, activation="linear"
     )
     assert len(layers) == 6
@@ -22,7 +22,7 @@ def model_output_dims_1d_testing(model):
 
     model.fit(x_train, y_train, epochs=1, verbose=0)
     output = model(x_train)
-    assert isinstance(output, tfd.TransformedDistribution)
+    assert isinstance(output, tfd.Distribution)
     assert output.event_shape == [1]
     assert output.batch_shape == [10]
     assert output.log_prob([[0.0]]).shape == [10]
@@ -34,7 +34,7 @@ def model_output_dims_3d_testing(model):
 
     model.fit(x_train, y_train, epochs=1, verbose=0)
     output = model(x_train)
-    assert isinstance(output, tfd.TransformedDistribution)
+    assert isinstance(output, tfd.Distribution)
     assert output.event_shape == [3]
     assert output.batch_shape == [10]
     assert output.log_prob([[0.0] * 3]).shape == [10]
@@ -87,7 +87,7 @@ def on_bimodal_gaussian_testing(model, expected_score):
 def test_ml_dims():
     # test 1 D
     for model in [
-        MaximumLikelihoodNFEstimator(1, n_flows=1, hidden_sizes=(2, 2), trainable_base_dist=False),
+        NormalizingFlowEstimator(1, n_flows=1, hidden_sizes=(2, 2), trainable_base_dist=False),
         MixtureDensityNetwork(1, n_centers=2, hidden_sizes=(2, 2)),
         KernelMixtureNetwork(1, n_centers=3, hidden_sizes=(2, 2)),
     ]:
@@ -95,7 +95,7 @@ def test_ml_dims():
 
     # test 3 D
     for model in [
-        MaximumLikelihoodNFEstimator(3, n_flows=1, hidden_sizes=(2, 2), trainable_base_dist=True),
+        NormalizingFlowEstimator(3, n_flows=1, hidden_sizes=(2, 2), trainable_base_dist=True),
         MixtureDensityNetwork(3, n_centers=2, hidden_sizes=(2, 2)),
         KernelMixtureNetwork(3, n_centers=3, hidden_sizes=(2, 2)),
     ]:
@@ -104,9 +104,9 @@ def test_ml_dims():
 
 @pytest.mark.slow
 def test_ml_nf_fitting():
-    m1 = MaximumLikelihoodNFEstimator(1, n_flows=3, hidden_sizes=(10, 10), trainable_base_dist=True)
+    m1 = NormalizingFlowEstimator(1, n_flows=3, hidden_sizes=(10, 10), trainable_base_dist=True)
     on_sinusoidal_gaussian_testing(m1, 0.45)
-    m2 = MaximumLikelihoodNFEstimator(1, n_flows=3, hidden_sizes=(10, 10), trainable_base_dist=True)
+    m2 = NormalizingFlowEstimator(1, n_flows=3, hidden_sizes=(10, 10), trainable_base_dist=True)
     on_bimodal_gaussian_testing(m2, 0.1012)
 
 

@@ -9,7 +9,7 @@ import argparse
 from datetime import datetime
 from config import DATA_DIR
 from estimators import BayesianNFEstimator
-from estimators import MaximumLikelihoodNFEstimator
+from estimators import NormalizingFlowEstimator
 from evaluation.scorers import bayesian_log_likelihood_score, mle_log_likelihood_score
 from evaluation.config_runner import run_configuation
 
@@ -47,10 +47,10 @@ if run_config.get("param_grid_bayesian"):
 if run_config.get("param_grid_mle"):
     ESTIMATOR_LIST.append(
         {
-            "estimator": MaximumLikelihoodNFEstimator,
+            "estimator": NormalizingFlowEstimator,
             "estimator_name": "mle",
             "scoring_fn": mle_log_likelihood_score,
-            "build_fn": MaximumLikelihoodNFEstimator.build_function,
+            "build_fn": NormalizingFlowEstimator.build_function,
             "param_grid": run_config["param_grid_mle"],
         }
     )
