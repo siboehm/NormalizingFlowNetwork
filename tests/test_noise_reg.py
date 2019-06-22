@@ -2,7 +2,7 @@ import tensorflow as tf
 import tensorflow_probability as tfp
 import pytest
 import numpy as np
-from estimators import NormalizingFlowEstimator
+from estimators import NormalizingFlowNetwork
 
 tfd = tfp.distributions
 tf.random.set_random_seed(22)
@@ -15,7 +15,7 @@ def test_x_noise_reg():
     noise = tfd.MultivariateNormalDiag(loc=5 * tf.math.sin(2 * x_train), scale_diag=abs(x_train))
     y_train = noise.sample().numpy()
 
-    too_much_noise = NormalizingFlowEstimator(
+    too_much_noise = NormalizingFlowNetwork(
         1, n_flows=2, hidden_sizes=(16, 16), noise_reg=("fixed_rate", 3.0), trainable_base_dist=True
     )
 
@@ -29,7 +29,7 @@ def test_x_noise_reg():
     # making sure that the noise regularisation is deactivated in testing mode
     assert all(out1 == out2)
 
-    little_noise = NormalizingFlowEstimator(
+    little_noise = NormalizingFlowNetwork(
         1,
         n_flows=2,
         hidden_sizes=(16, 16),
@@ -47,7 +47,7 @@ def test_y_noise_reg():
     x_train = np.linspace([[-1]] * 3, [[1]] * 3, 10, dtype=np.float32).reshape((10, 3))
     y_train = np.linspace([[-1]] * 3, [[1]] * 3, 10, dtype=np.float32).reshape((10, 3))
 
-    noise = NormalizingFlowEstimator(
+    noise = NormalizingFlowNetwork(
         3, n_flows=3, hidden_sizes=(16, 16), trainable_base_dist=True, noise_reg=("fixed_rate", 1.0)
     )
     noise.fit(x_train, y_train, epochs=10, verbose=0)

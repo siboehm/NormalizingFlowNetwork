@@ -1,20 +1,18 @@
 import tensorflow as tf
 import tensorflow_probability as tfp
-from estimators.DistributionLayers import InverseNormalizingFlowLayer, MeanFieldLayer
+from estimators.DistributionLayers import MeanFieldLayer
 from estimators.BaseEstimator import BaseEstimator
 
 tfd = tfp.distributions
 
 
-class BayesianNFEstimator(BaseEstimator):
+class BayesianNNEstimator(BaseEstimator):
     def __init__(
         self,
-        n_dims,
+        dist_layer,
         kl_weight_scale,
         kl_use_exact=True,
-        n_flows=2,
         hidden_sizes=(10,),
-        trainable_base_dist=True,
         activation="tanh",
         learning_rate=2e-2,
         noise_reg=("fixed_rate", 0.0),
@@ -24,11 +22,9 @@ class BayesianNFEstimator(BaseEstimator):
     ):
         """
         A bayesian net parametrizing a normalizing flow distribution
-        :param n_dims: The dimension of the output distribution
+        :param dist_layer: A Tfp Distribution Lambda Layer that converts the neural net output into a distribution
         :param kl_weight_scale: Scales how much KL(posterior|prior) influences the loss
-        :param n_flows: The number of flows to use
         :param hidden_sizes: size and depth of net
-        :param trainable_base_dist: whether to train the base normal dist
         :param noise_reg: Tuple with (type_of_reg, scale_factor)
         :param trainable_prior: empirical bayes
         :param map_mode: If true, will use the mean of the posterior instead of a sample. Default False
@@ -39,10 +35,6 @@ class BayesianNFEstimator(BaseEstimator):
         """
         self.x_noise_std = tf.Variable(initial_value=0.0, dtype=tf.float32, trainable=False)
         self.y_noise_std = tf.Variable(initial_value=0.0, dtype=tf.float32, trainable=False)
-
-        dist_layer = InverseNormalizingFlowLayer(
-            flow_types=["radial"] * n_flows, n_dims=n_dims, trainable_base_dist=trainable_base_dist
-        )
 
         posterior = self._get_posterior_fn(map_mode=map_mode)
         prior = self._get_prior_fn(trainable_prior, prior_scale)
@@ -62,38 +54,6 @@ class BayesianNFEstimator(BaseEstimator):
 
         self.compile(
             optimizer=tf.keras.optimizers.Adam(learning_rate), loss=self._get_neg_log_likelihood()
-        )
-
-    @staticmethod
-    def build_function(
-        n_dims,
-        kl_weight_scale,
-        kl_use_exact=True,
-        n_flows=2,
-        hidden_sizes=(10,),
-        trainable_base_dist=True,
-        activation="tanh",
-        noise_reg=("fixed_rate", 0.0),
-        learning_rate=2e-2,
-        trainable_prior=False,
-        map_mode=False,
-        prior_scale=1.0,
-    ):
-        # this is necessary, else there'll be processes hanging around hogging memory
-        tf.keras.backend.clear_session()
-        return BayesianNFEstimator(
-            n_dims=n_dims,
-            kl_weight_scale=kl_weight_scale,
-            kl_use_exact=kl_use_exact,
-            n_flows=n_flows,
-            hidden_sizes=hidden_sizes,
-            trainable_base_dist=trainable_base_dist,
-            activation=activation,
-            noise_reg=noise_reg,
-            learning_rate=learning_rate,
-            trainable_prior=trainable_prior,
-            map_mode=map_mode,
-            prior_scale=prior_scale,
         )
 
     @staticmethod

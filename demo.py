@@ -11,7 +11,7 @@ if not tf2.enabled():
 import numpy as np
 import matplotlib.pyplot as plt
 from simulation.dummy_data_gen import gen_cosine_noise_data
-from estimators import MaximumLikelihoodNFEstimator, BayesianNFEstimator
+from estimators import MaximumLikelihoodNFEstimator, BayesNormalizingFlowNetwork
 
 from evaluation.visualization.flow_plotting import plot_model
 
@@ -28,7 +28,7 @@ plt.scatter(x_train, y_train)
 # plt.show()
 
 
-model = BayesianNFEstimator(
+model = BayesNormalizingFlowNetwork(
     n_dims=1,
     kl_weight_scale=1.0 / x_train.shape[0],
     n_flows=5,

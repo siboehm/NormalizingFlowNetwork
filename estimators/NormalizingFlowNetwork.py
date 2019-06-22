@@ -6,7 +6,7 @@ from estimators.MaximumLikelihoodNNEstimator import MaximumLikelihoodNNEstimator
 tfd = tfp.distributions
 
 
-class NormalizingFlowEstimator(MaximumLikelihoodNNEstimator):
+class NormalizingFlowNetwork(MaximumLikelihoodNNEstimator):
     def __init__(self, n_dims, n_flows=2, trainable_base_dist=True, **kwargs):
         dist_layer = InverseNormalizingFlowLayer(
             flow_types=["radial"] * n_flows, n_dims=n_dims, trainable_base_dist=trainable_base_dist
@@ -25,7 +25,7 @@ class NormalizingFlowEstimator(MaximumLikelihoodNNEstimator):
     ):
         # this is necessary, else there'll be processes hanging around hogging memory
         tf.keras.backend.clear_session()
-        return NormalizingFlowEstimator(
+        return NormalizingFlowNetwork(
             n_dims=n_dims,
             n_flows=n_flows,
             hidden_sizes=hidden_sizes,

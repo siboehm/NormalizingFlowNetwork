@@ -2,7 +2,7 @@ import tensorflow as tf
 import tensorflow_probability as tfp
 import pytest
 import numpy as np
-from estimators import NormalizingFlowEstimator, MixtureDensityNetwork, KernelMixtureNetwork
+from estimators import NormalizingFlowNetwork, MixtureDensityNetwork, KernelMixtureNetwork
 
 tfd = tfp.distributions
 tf.random.set_random_seed(22)
@@ -10,7 +10,7 @@ np.random.seed(22)
 
 
 def test_dense_layer_generation():
-    layers = NormalizingFlowEstimator(1)._get_dense_layers(
+    layers = NormalizingFlowNetwork(1)._get_dense_layers(
         hidden_sizes=(2, 2, 2), output_size=2, activation="linear"
     )
     assert len(layers) == 6
@@ -87,7 +87,7 @@ def on_bimodal_gaussian_testing(model, expected_score):
 def test_ml_dims():
     # test 1 D
     for model in [
-        NormalizingFlowEstimator(1, n_flows=1, hidden_sizes=(2, 2), trainable_base_dist=False),
+        NormalizingFlowNetwork(1, n_flows=1, hidden_sizes=(2, 2), trainable_base_dist=False),
         MixtureDensityNetwork(1, n_centers=2, hidden_sizes=(2, 2)),
         KernelMixtureNetwork(1, n_centers=3, hidden_sizes=(2, 2)),
     ]:
@@ -95,7 +95,7 @@ def test_ml_dims():
 
     # test 3 D
     for model in [
-        NormalizingFlowEstimator(3, n_flows=1, hidden_sizes=(2, 2), trainable_base_dist=True),
+        NormalizingFlowNetwork(3, n_flows=1, hidden_sizes=(2, 2), trainable_base_dist=True),
         MixtureDensityNetwork(3, n_centers=2, hidden_sizes=(2, 2)),
         KernelMixtureNetwork(3, n_centers=3, hidden_sizes=(2, 2)),
     ]:
@@ -104,9 +104,9 @@ def test_ml_dims():
 
 @pytest.mark.slow
 def test_ml_nf_fitting():
-    m1 = NormalizingFlowEstimator(1, n_flows=3, hidden_sizes=(10, 10), trainable_base_dist=True)
+    m1 = NormalizingFlowNetwork(1, n_flows=3, hidden_sizes=(10, 10), trainable_base_dist=True)
     on_sinusoidal_gaussian_testing(m1, 0.45)
-    m2 = NormalizingFlowEstimator(1, n_flows=3, hidden_sizes=(10, 10), trainable_base_dist=True)
+    m2 = NormalizingFlowNetwork(1, n_flows=3, hidden_sizes=(10, 10), trainable_base_dist=True)
     on_bimodal_gaussian_testing(m2, 0.1012)
 
 

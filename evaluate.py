@@ -6,8 +6,8 @@ import json
 import argparse
 from datetime import datetime
 from config import DATA_DIR
-from estimators import BayesianNFEstimator
-from estimators import NormalizingFlowEstimator
+from estimators import BayesNormalizingFlowNetwork
+from estimators import NormalizingFlowNetwork
 from evaluation.scorers import bayesian_log_likelihood_score, mle_log_likelihood_score
 from evaluation.config_runner import run_configuation
 from collections.abc import Iterable
@@ -46,20 +46,20 @@ if __name__ == "__main__":
     if run_config.get("param_grid_bayesian"):
         ESTIMATOR_LIST.append(
             {
-                "estimator": BayesianNFEstimator,
+                "estimator": BayesNormalizingFlowNetwork,
                 "estimator_name": "bayesian",
                 "scoring_fn": bayesian_log_likelihood_score,
-                "build_fn": BayesianNFEstimator.build_function,
+                "build_fn": BayesNormalizingFlowNetwork.build_function,
                 "param_grid": run_config["param_grid_bayesian"],
             }
         )
     if run_config.get("param_grid_mle"):
         ESTIMATOR_LIST.append(
             {
-                "estimator": NormalizingFlowEstimator,
+                "estimator": NormalizingFlowNetwork,
                 "estimator_name": "mle",
                 "scoring_fn": mle_log_likelihood_score,
-                "build_fn": NormalizingFlowEstimator.build_function,
+                "build_fn": NormalizingFlowNetwork.build_function,
                 "param_grid": run_config["param_grid_mle"],
             }
         )

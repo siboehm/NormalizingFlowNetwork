@@ -2,7 +2,7 @@ import tensorflow as tf
 import pytest
 import tensorflow_probability as tfp
 import numpy as np
-from estimators import BayesianNFEstimator
+from estimators import BayesNormalizingFlowNetwork
 
 tfd = tfp.distributions
 tf.random.set_random_seed(22)
@@ -10,7 +10,7 @@ np.random.seed(22)
 
 
 def test_dense_layer_generation():
-    layers = BayesianNFEstimator(1, 1.0)._get_dense_layers(
+    layers = BayesNormalizingFlowNetwork(1, 1.0)._get_dense_layers(
         hidden_sizes=(2, 2, 2), output_size=2, posterior=None, prior=None
     )
     assert len(layers) == 6
@@ -20,7 +20,7 @@ def test_model_output_dims_1d():
     x_train = np.linspace(-1, 1, 10, dtype=np.float32).reshape((10, 1))
     y_train = np.linspace(-1, 1, 10, dtype=np.float32).reshape((10, 1))
 
-    m1 = BayesianNFEstimator(
+    m1 = BayesNormalizingFlowNetwork(
         1,
         kl_weight_scale=1.0 / x_train.shape[0],
         n_flows=3,
@@ -42,7 +42,7 @@ def test_model_output_dims_1d_2():
     x_train = np.linspace(-1, 1, 10).reshape((10, 1))
     y_train = np.linspace(-1, 1, 10).reshape((10, 1))
 
-    m1 = BayesianNFEstimator(
+    m1 = BayesNormalizingFlowNetwork(
         1,
         kl_weight_scale=1.0 / x_train.shape[0],
         n_flows=0,
@@ -61,7 +61,7 @@ def test_model_ouput_dims_3d():
     x_train = np.linspace([[-1]] * 3, [[1]] * 3, 10).reshape((10, 3))
     y_train = np.linspace([[-1]] * 3, [[1]] * 3, 10).reshape((10, 3))
 
-    m1 = BayesianNFEstimator(
+    m1 = BayesNormalizingFlowNetwork(
         3,
         kl_weight_scale=1.0 / x_train.shape[0],
         n_flows=3,
@@ -80,7 +80,7 @@ def test_y_noise_reg():
     x_train = np.linspace([[-1]] * 3, [[1]] * 3, 10, dtype=np.float32).reshape((10, 3))
     y_train = np.linspace([[-1]] * 3, [[1]] * 3, 10, dtype=np.float32).reshape((10, 3))
 
-    noise = BayesianNFEstimator(
+    noise = BayesNormalizingFlowNetwork(
         3,
         kl_weight_scale=1.0 / x_train.shape[0],
         n_flows=3,
@@ -106,7 +106,7 @@ def test_map_mode():
     x_train = np.linspace([[-1]] * 3, [[1]] * 3, 10, dtype=np.float32).reshape((10, 3))
     y_train = np.linspace([[-1]] * 3, [[1]] * 3, 10, dtype=np.float32).reshape((10, 3))
 
-    map_model = BayesianNFEstimator(
+    map_model = BayesNormalizingFlowNetwork(
         3,
         kl_weight_scale=1.0 / x_train.shape[0],
         n_flows=3,
@@ -118,7 +118,7 @@ def test_map_mode():
     map_model.fit(x_train, y_train, epochs=10, verbose=0)
     assert map_model.evaluate(x_train, y_train) == map_model.evaluate(x_train, y_train)
 
-    bayes_model = BayesianNFEstimator(
+    bayes_model = BayesNormalizingFlowNetwork(
         3,
         kl_weight_scale=1.0 / x_train.shape[0],
         n_flows=3,
@@ -135,7 +135,7 @@ def test_bayes_big():
     x_train = np.linspace([[-1]] * 1, [[1]] * 1, 10, dtype=np.float32).reshape((10, 1))
     y_train = np.linspace([[-1]] * 1, [[1]] * 1, 10, dtype=np.float32).reshape((10, 1))
 
-    model = BayesianNFEstimator(
+    model = BayesNormalizingFlowNetwork(
         n_dims=1,
         kl_weight_scale=0.1,
         n_flows=5,
@@ -156,7 +156,7 @@ def test_bayesian_nn_on_gaussian():
     noise = tfd.MultivariateNormalDiag(loc=5 * tf.math.sin(2 * x_train), scale_diag=abs(x_train))
     y_train = noise.sample().numpy()
 
-    model = BayesianNFEstimator(
+    model = BayesNormalizingFlowNetwork(
         1,
         n_flows=0,
         kl_weight_scale=1.0 / x_train.shape[0],
@@ -196,7 +196,7 @@ def test_bimodal_gaussian():
 
     x_train, y_train, _ = get_data()
 
-    model = BayesianNFEstimator(
+    model = BayesNormalizingFlowNetwork(
         1,
         n_flows=1,
         learning_rate=0.02,

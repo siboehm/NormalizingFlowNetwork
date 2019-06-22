@@ -3,7 +3,7 @@ import tensorflow_probability as tfp
 from tensorflow.python import tf2
 import numpy as np
 from sklearn.cluster import KMeans
-from sklearn.metrics.pairwise import euclidean_distances, cosine_distances
+from sklearn.metrics.pairwise import cosine_distances
 from estimators.normalizing_flows import FLOWS
 
 if not tf2.enabled():
