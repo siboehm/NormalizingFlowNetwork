@@ -2,7 +2,11 @@ import tensorflow as tf
 import pytest
 import tensorflow_probability as tfp
 import numpy as np
-from estimators import BayesNormalizingFlowNetwork
+from estimators import (
+    BayesNormalizingFlowNetwork,
+    BayesMixtureDensityNetwork,
+    BayesKernelMixtureNetwork,
+)
 
 tfd = tfp.distributions
 tf.random.set_random_seed(22)
@@ -131,22 +135,45 @@ def test_map_mode():
     assert bayes_model.evaluate(x_train, y_train) != bayes_model.evaluate(x_train, y_train)
 
 
-def test_bayes_big():
-    x_train = np.linspace([[-1]] * 1, [[1]] * 1, 10, dtype=np.float32).reshape((10, 1))
-    y_train = np.linspace([[-1]] * 1, [[1]] * 1, 10, dtype=np.float32).reshape((10, 1))
-
-    model = BayesNormalizingFlowNetwork(
-        n_dims=1,
-        kl_weight_scale=0.1,
-        n_flows=5,
-        hidden_sizes=(32, 32),
-        trainable_base_dist=True,
-        activation="tanh",
-        learning_rate=3e-3,
-        map_mode=False,
-    )
+def big_bayes_testing(model):
+    x_train = np.linspace([[-1]] * 1, [[1]] * 1, 100, dtype=np.float32).reshape((100, 1))
+    y_train = np.linspace([[-1]] * 1, [[1]] * 1, 100, dtype=np.float32).reshape((100, 1))
     model.fit(x_train, y_train, epochs=10, verbose=0)
     assert not np.isnan(model.evaluate(x_train, y_train))
+
+
+def test_big_bayesian_models():
+    for model in [
+        BayesNormalizingFlowNetwork(
+            n_dims=1,
+            kl_weight_scale=0.01,
+            trainable_base_dist=True,
+            n_flows=10,
+            hidden_sizes=(32, 32),
+            activation="tanh",
+            learning_rate=3e-3,
+            map_mode=False,
+        ),
+        BayesMixtureDensityNetwork(
+            n_dims=1,
+            kl_weight_scale=0.01,
+            n_centers=10,
+            hidden_sizes=(32, 32),
+            activation="tanh",
+            learning_rate=3e-3,
+            map_mode=False,
+        ),
+        BayesKernelMixtureNetwork(
+            n_dims=1,
+            kl_weight_scale=0.01,
+            n_centers=30,
+            hidden_sizes=(32, 32),
+            activation="tanh",
+            learning_rate=3e-3,
+            map_mode=False,
+        ),
+    ]:
+        big_bayes_testing(model)
 
 
 @pytest.mark.slow
