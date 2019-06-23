@@ -130,6 +130,7 @@ def plot_single_param(
         )
     )
 
+
 def plot_map_mle(df, file, result_dir):
     densities = df["density"].unique()
     test_score_columns = [
@@ -150,23 +151,20 @@ def plot_map_mle(df, file, result_dir):
     for i, density in enumerate(densities):
         color_iter = iter(cm.gist_rainbow(np.linspace(0, 1, n_curves_to_plot)))
 
-        for name,  estimator in [
-            ("MAP", "bayesian"),
-            ("MLE", "mle"),
-        ]:
+        for name, estimator in [("MAP", "bayesian"), ("MLE", "mle")]:
             if estimator == "bayesian":
                 sub_df = df.loc[
                     (df["density"] == density)
                     & (df["estimator"] == estimator)
                     & (df["param_map_mode"])
-                    & (df['param_noise_reg'] == "['fixed_rate', 0.0]")
-                    ]
+                    & (df["param_noise_reg"] == "['fixed_rate', 0.0]")
+                ]
             else:
                 sub_df = df.loc[
                     (df["density"] == density)
                     & (df["estimator"] == estimator)
-                    & (df['param_noise_reg'] == "['fixed_rate', 0.0]")
-                    ]
+                    & (df["param_noise_reg"] == "['fixed_rate', 0.0]")
+                ]
             n_datapoints = sorted(sub_df["n_datapoints"].unique())
             means = np.array([], dtype=np.float32)
             stds = np.array([], dtype=np.float32)
@@ -191,6 +189,7 @@ def plot_map_mle(df, file, result_dir):
             axarr[i].set_xscale("log")
 
         plt.savefig(os.path.join(result_dir, file.name.split(".")[0] + "_" + "map_vs_mle.png"))
+
 
 def plot_best(df, file, result_dir):
     densities = df["density"].unique()
@@ -224,9 +223,7 @@ def plot_best(df, file, result_dir):
             & (df["n_datapoints"] == 800)
         ].sort_values(by="mean_test_score", ascending=False)
         best_mle = df.loc[
-            (df["density"] == density)
-            & (df["estimator"] == "mle")
-            & (df["n_datapoints"] == 800)
+            (df["density"] == density) & (df["estimator"] == "mle") & (df["n_datapoints"] == 800)
         ].sort_values(by="mean_test_score", ascending=False)
 
         for name, map_mode, estimator, best in [
@@ -362,6 +359,6 @@ def plot_cv_results():
             df = pd.read_csv(file.path)
 
             if ("06-17_22-33" in result_dir) and file.name == "results.csv":
-                #output_metric_scores(df, file, result_dir)
-                #plot_best(df, file, result_dir)
+                # output_metric_scores(df, file, result_dir)
+                # plot_best(df, file, result_dir)
                 plot_map_mle(df, file, result_dir)
