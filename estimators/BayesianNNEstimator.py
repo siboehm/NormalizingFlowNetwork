@@ -14,7 +14,7 @@ class BayesianNNEstimator(BaseEstimator):
         kl_use_exact=True,
         hidden_sizes=(10,),
         activation="tanh",
-        learning_rate=2e-2,
+        learning_rate=3e-2,
         noise_reg=("fixed_rate", 0.0),
         trainable_prior=False,
         map_mode=False,

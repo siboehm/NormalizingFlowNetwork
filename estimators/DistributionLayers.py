@@ -88,7 +88,8 @@ class GaussianKernelsLayer(tfp.layers.DistributionLambda):
             for scale in tf.math.log(tf.math.expm1(init_scales))
         ]
         assert len(self.scales) == len(init_scales)
-        super().__init__(make_distribution_fn=self._get_distribution_fn())
+        convert_ttfn = lambda d: tf.zeros(n_dims)
+        super().__init__(make_distribution_fn=self._get_distribution_fn(), convert_to_tensor_fn=convert_ttfn)
 
     def get_total_param_size(self):
         """
@@ -159,8 +160,9 @@ class GaussianMixtureLayer(tfp.layers.DistributionLambda):
         """
         self._n_centers = n_centers
         self._n_dims = n_dims
+        convert_ttfn = lambda d: tf.zeros(n_dims)
         make_mixture_dist = self._get_distribution_fn(n_centers, n_dims)
-        super().__init__(make_distribution_fn=make_mixture_dist)
+        super().__init__(make_distribution_fn=make_mixture_dist, convert_to_tensor_fn=convert_ttfn)
 
     def get_total_param_size(self):
         """
