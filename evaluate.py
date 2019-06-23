@@ -6,8 +6,7 @@ import json
 import argparse
 from datetime import datetime
 from config import DATA_DIR
-from estimators import BayesNormalizingFlowNetwork
-from estimators import NormalizingFlowNetwork
+from estimators import ESTIMATORS
 from evaluation.scorers import bayesian_log_likelihood_score, mle_log_likelihood_score
 from evaluation.config_runner import run_configuation
 from collections.abc import Iterable
@@ -42,33 +41,26 @@ if __name__ == "__main__":
         json.dump(run_config, f)
 
     # collect the configurations for the estimators
-    ESTIMATOR_LIST = []
-    if run_config.get("param_grid_bayesian"):
-        ESTIMATOR_LIST.append(
+    estimator_list = []
+    for estimator_name, param_grid in run_config["parameter_grids"]:
+        estimator = ESTIMATORS[estimator_name]
+        scoring_fn = (
+            bayesian_log_likelihood_score if "bayes" in estimator_name else mle_log_likelihood_score
+        )
+        estimator_list.append(
             {
-                "estimator": BayesNormalizingFlowNetwork,
-                "estimator_name": "bayesian",
-                "scoring_fn": bayesian_log_likelihood_score,
-                "build_fn": BayesNormalizingFlowNetwork.build_function,
-                "param_grid": run_config["param_grid_bayesian"],
+                "estimator": estimator,
+                "estimator_name": estimator_name,
+                "scoring_fn": scoring_fn,
+                "build_fn": estimator.build_function,
+                "param_grid": param_grid,
             }
         )
-    if run_config.get("param_grid_mle"):
-        ESTIMATOR_LIST.append(
-            {
-                "estimator": NormalizingFlowNetwork,
-                "estimator_name": "mle",
-                "scoring_fn": mle_log_likelihood_score,
-                "build_fn": NormalizingFlowNetwork.build_function,
-                "param_grid": run_config["param_grid_mle"],
-            }
-        )
-
     n_datapoints = run_config["n_datapoints"]
     n_datapoints_list = n_datapoints if isinstance(n_datapoints, Iterable) else [n_datapoints]
 
     run_configuation(
-        estimator_list=ESTIMATOR_LIST,
+        estimator_list=estimator_list,
         density_list=run_config["density_configs"],
         n_epochs=run_config["n_training_epochs"],
         n_folds=run_config["n_folds"],

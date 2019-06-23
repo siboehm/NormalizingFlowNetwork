@@ -48,7 +48,7 @@ def run_cv(
         "EconDensity": EconDensity,
         "GaussianMixture": GaussianMixture,
     }
-    test_size = 5 * 10 ** 5
+    test_size = 2 * 10 ** 5
 
     x_train, y_train = density_classes[density_name](**density_params).simulate(
         n_samples=n_datapoints + test_size
@@ -57,12 +57,18 @@ def run_cv(
     if density_name == "ArmaJump":
         x_train = np.expand_dims(x_train, axis=1)
         y_train = np.expand_dims(y_train, axis=1)
+
     estimator["param_grid"]["n_dims"] = [y_train.shape[1]]
-    if estimator["estimator_name"] == "bayesian":
-        estimator["param_grid"]["kl_weight_scale"] = [0.5 / n_datapoints]
+
+    if "bayesian" in estimator["estimator_name"]:
+        estimator["param_grid"]["kl_weight_scale"] = [
+            scale / n_datapoints for scale in estimator["param_grid"]["kl_weight_scale"]
+        ]
+
     model = tf.keras.wrappers.scikit_learn.KerasRegressor(
         build_fn=estimator["build_fn"], epochs=n_epochs, verbose=0
     )
+    print("FITTING {} on {}".format(estimator["estimator_name"], density_name))
     cv = GridSearchCV(
         estimator=model,
         param_grid=estimator["param_grid"],
