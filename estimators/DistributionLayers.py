@@ -184,9 +184,7 @@ class GaussianMixtureLayer(tfp.layers.DistributionLambda):
                 for loc_start in range(0, 2 * n_centers * n_dims, 2 * n_dims)
             ],
             cat=tfd.Categorical(
-                probs=tf.nn.softmax(
-                    t[..., 2 * n_centers * n_dims : 2 * n_centers * n_dims + n_centers]
-                )
+                logits=t[..., 2 * n_centers * n_dims : 2 * n_centers * n_dims + n_centers]
             ),
         )
 
