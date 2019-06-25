@@ -1,3 +1,4 @@
+import numpy as np
 import tensorflow as tf
 import tensorflow_probability as tfp
 from estimators.DistributionLayers import GaussianKernelsLayer
@@ -41,3 +42,9 @@ class BayesKernelMixtureNetwork(BayesianNNEstimator):
             map_mode=map_mode,
             prior_scale=prior_scale,
         )
+
+    def fit(self, x, y, batch_size=None, epochs=None, verbose=1, **kwargs):
+        y_mean = np.mean(y, axis=0, dtype=np.float32)
+        y_std = np.std(y, axis=0, dtype=np.float32)
+        self.dist_layer.set_center_points((y - y_mean) / y_std)
+        super().fit(x=x, y=y, batch_size=batch_size, epochs=epochs, verbose=verbose, **kwargs)

@@ -8,12 +8,6 @@ tfd = tfp.distributions
 
 class BaseEstimator(tf.keras.Sequential):
     def __init__(self, layers, noise_fn_type="fixed_rate", noise_scale_factor=0.0):
-        # data normalization
-        self.x_mean = [0.0]
-        self.y_mean = [0.0]
-        self.x_std = [1.0]
-        self.y_std = [1.0]
-
         self.noise_fn_type = noise_fn_type
         self.noise_scale_factor = noise_scale_factor
 
@@ -66,7 +60,12 @@ class BaseEstimator(tf.keras.Sequential):
         return output.prob(y_circ) / tf.reduce_prod(self.y_std)
 
     def log_pdf(self, x, y):
+        x = x.astype(np.float32)
+        y = y.astype(np.float32)
         assert x.shape == y.shape
+
         output = self(x)
+        assert output.event_shape == y.shape[-1]
+
         y_circ = (y - tf.ones_like(y) * self.y_mean) / self.y_std
         return output.log_prob(y_circ) - tf.reduce_sum(tf.math.log(self.y_std))

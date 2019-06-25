@@ -179,7 +179,7 @@ def test_big_bayesian_models():
 @pytest.mark.slow
 def test_bayesian_nn_on_gaussian():
     # sinusoidal data with heteroscedastic noise
-    x_train = np.linspace(-3, 3, 300, dtype=np.float32).reshape((300, 1))
+    x_train = np.linspace(-3, 3, 400, dtype=np.float32).reshape((400, 1))
     noise = tfd.MultivariateNormalDiag(loc=5 * tf.math.sin(2 * x_train), scale_diag=abs(x_train))
     y_train = noise.sample().numpy()
 

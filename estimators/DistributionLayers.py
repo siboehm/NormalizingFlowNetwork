@@ -76,20 +76,35 @@ class GaussianKernelsLayer(tfp.layers.DistributionLambda):
         self.n_centers = n_centers
         self.n_scales = len(init_scales)
         self.n_dims = n_dims
-        self.trainable_scale = trainable_scale
+        self.scale_model = tf.keras.models.Sequential(
+            [
+                tfp.layers.VariableLayer(
+                    shape=len(init_scales), dtype=tf.float32, initializer="zeros", trainable=trainable_scale
+                ),
+                tf.keras.layers.Lambda(
+                    lambda x: tf.concat(
+                        [
+                            tf.zeros(self.n_centers, dtype=tf.float32)
+                            + tf.nn.softplus(x[i])
+                            + tf.math.log(tf.math.expm1(init_scales[i]))
+                            for i in range(self.n_scales)
+                        ],
+                        axis=0,
+                    )
+                ),
+            ]
+        )
 
-        self.locs = [
-            tf.Variable(initial_value=np.zeros((1, n_dims)), dtype=tf.float32, trainable=False)
-            for _ in range(n_centers)
-        ]
+        self.locs = tf.Variable(
+            initial_value=np.zeros((self.n_scales * n_centers, n_dims)),
+            dtype=tf.float32,
+            trainable=False,
+        )
 
-        self.scales = [
-            tf.Variable(initial_value=scale, dtype=tf.float32, trainable=trainable_scale)
-            for scale in tf.math.log(tf.math.expm1(init_scales))
-        ]
-        assert len(self.scales) == len(init_scales)
-        convert_ttfn = lambda d: tf.zeros(n_dims)
-        super().__init__(make_distribution_fn=self._get_distribution_fn(), convert_to_tensor_fn=convert_ttfn)
+        convert_ttfn = lambda d: tf.constant(0.0)
+        super().__init__(
+            make_distribution_fn=self._get_distribution_fn(), convert_to_tensor_fn=convert_ttfn
+        )
 
     def get_total_param_size(self):
         """
@@ -100,16 +115,14 @@ class GaussianKernelsLayer(tfp.layers.DistributionLambda):
     def _get_distribution_fn(self):
         def dist(t):
             assert t.shape[-1] == self.n_centers * self.n_scales
-            return tfd.Mixture(
-                components=[
-                    tfd.MultivariateNormalDiag(
-                        loc=loc * tf.ones_like(t[..., 0 : self.n_dims]),
-                        scale_identity_multiplier=tf.nn.softplus(scale),
-                    )
-                    for loc in self.locs
-                    for scale in self.scales
-                ],
-                cat=tfd.Categorical(logits=t[..., 0 : self.n_centers * self.n_scales]),
+            batch_expander = tf.expand_dims(tf.expand_dims(tf.ones_like(t[..., 0]), axis=-1), axis=-1)
+            return tfd.MixtureSameFamily(
+                components_distribution=tfd.MultivariateNormalDiag(
+                    loc=self.locs * batch_expander, scale_identity_multiplier=self.scale_model(0.0)
+                ),
+                mixture_distribution=tfd.Categorical(
+                    logits=t[..., 0 : self.n_centers * self.n_scales]
+                ),
             )
 
         return dist
@@ -144,10 +157,13 @@ class GaussianKernelsLayer(tfp.layers.DistributionLambda):
         model = KMeans(n_clusters=k, n_jobs=-2)
         model.fit(y)
         cluster_centers = model.cluster_centers_
-        cluster_centers = np.concatenate([centers_at_edges, cluster_centers], axis=0)
 
-        for loc, val in zip(self.locs, cluster_centers):
-            loc.assign(tf.expand_dims(np.float32(val), axis=0))
+        cluster_centers = np.concatenate([centers_at_edges, cluster_centers], axis=0)
+        result = cluster_centers
+        for _ in range(self.n_scales - 1):
+            result = np.concatenate([result, cluster_centers], axis=0)
+        self.locs.assign(np.float32(result))
+        self.locs = tf.expand_dims(self.locs, axis=0)
 
 
 class GaussianMixtureLayer(tfp.layers.DistributionLambda):
@@ -214,7 +230,7 @@ class InverseNormalizingFlowLayer(tfp.layers.DistributionLambda):
         # as keras transforms tensors, this layer needs to have an tensor-like output
         # therefore a function needs to be provided that transforms a distribution into a tensor
         # per default the .sample() function is used, but our reversed flows cannot perform that operation
-        convert_ttfn = lambda d: tf.zeros(n_dims)
+        convert_ttfn = lambda d: tf.constant([0.0])
         make_flow_dist = self._get_distribution_fn(n_dims, flow_types, trainable_base_dist)
         super().__init__(make_distribution_fn=make_flow_dist, convert_to_tensor_fn=convert_ttfn)
 
@@ -257,9 +273,11 @@ class InverseNormalizingFlowLayer(tfp.layers.DistributionLambda):
                 loc=t[..., 0:n_dims],
                 scale_diag=1e-3
                 + tf.math.softplus(
-                    tf.math.log(tf.math.expm1(1.0)) + 0.05 * t[..., n_dims : 2 * n_dims]
+                    tf.math.log(tf.math.expm1(1.0)) + 0.1 * t[..., n_dims : 2 * n_dims]
                 ),
             )
         else:
             # we still need to know the batch size, therefore we need t for reference
-            return tfd.MultivariateNormalDiag(loc=tf.zeros_like(t[..., 0:n_dims]))
+            return tfd.MultivariateNormalDiag(
+                loc=tf.zeros_like(t[..., 0:n_dims]), scale_diag=tf.ones_like(t[..., 0:n_dims])
+            )

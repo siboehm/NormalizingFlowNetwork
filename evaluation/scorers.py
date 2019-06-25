@@ -4,6 +4,11 @@ import numpy as np
 # this is a score, therefore higher is better
 
 
+class DummySklearWrapper:
+    def __init__(self, model):
+        self.model = model
+
+
 def bayesian_log_likelihood_score(wrapped_model, x, y, **kwargs):
     x = x.astype(np.float32)
     y = y.astype(np.float32)

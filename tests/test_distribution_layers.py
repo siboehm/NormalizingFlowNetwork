@@ -104,20 +104,20 @@ def test_gk_dist_fn():
     layer = GaussianKernelsLayer(
         n_centers=10, n_dims=1, trainable_scale=True, init_scales=(0.3, 0.7)
     )
-    assert layer.get_total_param_size() == 20
+    assert layer.get_total_param_size() == 22
 
     dist_fn = layer._get_distribution_fn()
 
-    assert np.all(layer.locs[0].numpy() == [0.0])
+    assert np.sum(np.abs(layer.locs.numpy())) == 0.0
     layer.set_center_points(y_train)
-    assert not np.any(layer.locs[0].numpy() == [0.0])
+    assert not np.sum(np.abs(layer.locs.numpy())) == 0.0
 
-    dist = dist_fn(tf.ones((1, 20)))
+    dist = dist_fn(tf.ones((1, 22)))
     assert dist.event_shape == [1]
     assert dist.batch_shape == [1]
     assert dist.sample().shape == (1, 1)
 
-    dist = dist_fn(tf.ones((3, 20)))
+    dist = dist_fn(tf.ones((3, 22)))
     assert dist.event_shape == [1]
     assert dist.batch_shape == [3]
     assert dist.sample().shape == (3, 1)
@@ -129,7 +129,7 @@ def test_gk_dist_fn():
     layer = GaussianKernelsLayer(
         n_centers=10, n_dims=2, trainable_scale=True, init_scales=(0.3, 0.7)
     )
-    assert layer.get_total_param_size() == 20
+    assert layer.get_total_param_size() == 22
 
     dist_fn = layer._get_distribution_fn()
 
@@ -137,12 +137,12 @@ def test_gk_dist_fn():
     layer.set_center_points(y_train)
     assert not np.any(layer.locs[0].numpy() == [[0.0, 0.0]])
 
-    dist = dist_fn(tf.ones((1, 20)))
+    dist = dist_fn(tf.ones((1, 22)))
     assert dist.event_shape == [2]
     assert dist.batch_shape == [1]
     assert dist.sample().shape == (1, 2)
 
-    dist = dist_fn(tf.ones((3, 20)))
+    dist = dist_fn(tf.ones((3, 22)))
     assert dist.event_shape == [2]
     assert dist.batch_shape == [3]
     assert dist.sample().shape == (3, 2)
