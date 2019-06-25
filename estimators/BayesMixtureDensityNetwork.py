@@ -13,17 +13,17 @@ class BayesMixtureDensityNetwork(BayesianNNEstimator):
 
     @staticmethod
     def build_function(
-            n_dims,
-            kl_weight_scale,
-            n_centers=5,
-            kl_use_exact=True,
-            hidden_sizes=(10,),
-            activation="tanh",
-            noise_reg=("fixed_rate", 0.0),
-            learning_rate=2e-2,
-            trainable_prior=False,
-            map_mode=False,
-            prior_scale=1.0,
+        n_dims,
+        kl_weight_scale,
+        n_centers=5,
+        kl_use_exact=True,
+        hidden_sizes=(10,),
+        activation="tanh",
+        noise_reg=("fixed_rate", 0.0),
+        learning_rate=2e-2,
+        trainable_prior=False,
+        map_mode=False,
+        prior_scale=1.0,
     ):
         # this is necessary, else there'll be processes hanging around hogging memory
         tf.keras.backend.clear_session()

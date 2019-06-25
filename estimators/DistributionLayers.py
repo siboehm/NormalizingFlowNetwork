@@ -79,7 +79,10 @@ class GaussianKernelsLayer(tfp.layers.DistributionLambda):
         self.scale_model = tf.keras.models.Sequential(
             [
                 tfp.layers.VariableLayer(
-                    shape=len(init_scales), dtype=tf.float32, initializer="zeros", trainable=trainable_scale
+                    shape=len(init_scales),
+                    dtype=tf.float32,
+                    initializer="zeros",
+                    trainable=trainable_scale,
                 ),
                 tf.keras.layers.Lambda(
                     lambda x: tf.concat(
@@ -115,7 +118,9 @@ class GaussianKernelsLayer(tfp.layers.DistributionLambda):
     def _get_distribution_fn(self):
         def dist(t):
             assert t.shape[-1] == self.n_centers * self.n_scales
-            batch_expander = tf.expand_dims(tf.expand_dims(tf.ones_like(t[..., 0]), axis=-1), axis=-1)
+            batch_expander = tf.expand_dims(
+                tf.expand_dims(tf.ones_like(t[..., 0]), axis=-1), axis=-1
+            )
             return tfd.MixtureSameFamily(
                 components_distribution=tfd.MultivariateNormalDiag(
                     loc=self.locs * batch_expander, scale_identity_multiplier=self.scale_model(0.0)
