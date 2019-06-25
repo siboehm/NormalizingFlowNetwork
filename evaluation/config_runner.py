@@ -18,9 +18,9 @@ if not tf2.enabled():
 def run_configuation(
     estimator_list, density_list, n_epochs, n_folds, n_datapoints_list, results_dir, n_jobs
 ):
-    for estimator in estimator_list:
+    for n_datapoints in n_datapoints_list:
         for density_name, density_params in density_list:
-            for n_datapoints in n_datapoints_list:
+            for estimator in estimator_list:
                 p = Process(
                     target=run_cv,
                     args=(
@@ -49,10 +49,15 @@ def run_cv(
         "GaussianMixture": GaussianMixture,
     }
     test_size = 2 * 10 ** 5
+    n_samples = n_datapoints + test_size
 
-    x_train, y_train = density_classes[density_name](**density_params).simulate(
-        n_samples=n_datapoints + test_size
-    )
+    if density_name == 'GaussianMixture':
+        x_train = np.load('data/raw/x_data_GaussianMixture.npy')[0:n_samples]
+        y_train = np.load('data/raw/y_data_GaussianMixture.npy')[0:n_samples]
+    else:
+        x_train, y_train = density_classes[density_name](**density_params).simulate(
+            n_samples=n_samples
+        )
     # Arma Jump has a dimension different from the others
     if density_name == "ArmaJump":
         x_train = np.expand_dims(x_train, axis=1)
