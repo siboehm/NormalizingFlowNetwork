@@ -40,6 +40,7 @@ class InvertedRadialFlow(tfp.bijectors.Bijector):
         # slightly shift beta, softplus(zero centered input + ln(e - 1)) = 0
         self._beta = self._beta_circ(0.1 * beta + tf.math.log(tf.math.expm1(1.0)))
         self._gamma = gamma
+        self.n_dims = n_dims
 
     @staticmethod
     def get_param_size(n_dims):
@@ -73,7 +74,7 @@ class InvertedRadialFlow(tfp.bijectors.Bijector):
             h = self._h(r)
         der_h = g.gradient(h, r)
         ab = self._alpha * self._beta
-        det = (1.0 + ab * h) ** (1 - 1) * (1.0 + ab * h + ab * der_h * r)
+        det = (1.0 + ab * h) ** (self.n_dims - 1) * (1.0 + ab * h + ab * der_h * r)
         det = tf.squeeze(det, axis=-1)
         return tf.math.log(det)
 
