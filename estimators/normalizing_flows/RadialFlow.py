@@ -1,15 +1,8 @@
 import tensorflow as tf
 import tensorflow_probability as tfp
-from tensorflow.python import tf2
-
-if not tf2.enabled():
-    import tensorflow.compat.v2 as tf
-
-    tf.enable_v2_behavior()
-    assert tf2.enabled()
 
 
-class InvertedRadialFlow(tfp.bijectors.Bijector):
+class RadialFlow(tfp.bijectors.Bijector):
     """
     Implements a bijector x = y + (alpha * beta * (y - y_0)) / (alpha + abs(y - y_0)).
     Args:
@@ -24,10 +17,8 @@ class InvertedRadialFlow(tfp.bijectors.Bijector):
     _beta = None
     _gamma = None
 
-    def __init__(self, t, n_dims, name="InvertedRadialFlow"):
-        super(InvertedRadialFlow, self).__init__(
-            validate_args=False, name=name, inverse_min_event_ndims=1
-        )
+    def __init__(self, t, n_dims, name="RadialFlow"):
+        super().__init__(validate_args=False, name=name, inverse_min_event_ndims=1)
 
         assert t.shape[-1] == n_dims + 2
         alpha = t[..., 0:1]
@@ -56,7 +47,7 @@ class InvertedRadialFlow(tfp.bijectors.Bijector):
     def _h(self, r):
         return 1.0 / (self._alpha + r)
 
-    def _inverse(self, z):
+    def _forward(self, z):
         """
         Runs a forward pass through the bijector
         """
@@ -64,7 +55,7 @@ class InvertedRadialFlow(tfp.bijectors.Bijector):
         h = self._h(r)
         return z + (self._alpha * self._beta * h) * (z - self._gamma)
 
-    def _inverse_log_det_jacobian(self, z):
+    def _forward_log_det_jacobian(self, z):
         """
         Computes the ln of the absolute determinant of the jacobian
         """

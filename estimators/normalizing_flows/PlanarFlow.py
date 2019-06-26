@@ -1,9 +1,8 @@
 import tensorflow as tf
 import tensorflow_probability as tfp
-import numpy as np
 
 
-class InvertedPlanarFlow(tfp.bijectors.Bijector):
+class PlanarFlow(tfp.bijectors.Bijector):
     """
     Implements a bijector x = y + u * tanh(w_t * y + b)
 
@@ -19,9 +18,7 @@ class InvertedPlanarFlow(tfp.bijectors.Bijector):
     _u, _w, _b = None, None, None
 
     def __init__(self, t, n_dims, name="Inverted_Planar_Flow"):
-        super(InvertedPlanarFlow, self).__init__(
-            validate_args=False, name=name, inverse_min_event_ndims=1
-        )
+        super().__init__(validate_args=False, name=name, inverse_min_event_ndims=1)
         assert t.shape[-1] == 2 * n_dims + 1
         u, w, b = (
             t[..., 0:n_dims],
@@ -67,14 +64,13 @@ class InvertedPlanarFlow(tfp.bijectors.Bijector):
         """
         return 1.0 - tf.math.tanh(z) ** 2
 
-    def _inverse(self, z):
+    def _forward(self, z):
         """
-        Runs a backward pass through the bijector
-        @todo add the invertibility check again
+        Runs a forward pass through the bijector
         """
         return z + self._u * tf.math.tanh(self._wzb(z))
 
-    def _inverse_log_det_jacobian(self, z):
+    def _forward_log_det_jacobian(self, z):
         """
         Computes the ln of the absolute determinant of the jacobian
         """

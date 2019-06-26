@@ -1,12 +1,4 @@
-import tensorflow as tf
 import tensorflow_probability as tfp
-from tensorflow.python import tf2
-
-if not tf2.enabled():
-    import tensorflow.compat.v2 as tf
-
-    tf.enable_v2_behavior()
-    assert tf2.enabled()
 
 
 class AffineFlow(tfp.bijectors.Affine):

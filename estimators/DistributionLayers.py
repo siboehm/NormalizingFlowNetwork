@@ -220,7 +220,9 @@ class InverseNormalizingFlowLayer(tfp.layers.DistributionLambda):
     def __init__(self, flow_types, n_dims, trainable_base_dist=False):
         """
         Subclass of a DistributionLambda. A layer that uses it's input to parametrize a normalizing flow
-        that transforms a base normal distribution
+        that transforms a base normal distribution. The Normalizing flows are inverted to enable fast likelihood
+        calculation of externally provided data. This is useful for density estimation.
+        As a result, sampling from this layer is not possible.
         This layer does not work for scalars!
         :param flow_types: Types of flows to use, applied in order from base_dist -> transformed_dist
         :param n_dims: dimension of the underlying distribution being transformed
@@ -243,8 +245,10 @@ class InverseNormalizingFlowLayer(tfp.layers.DistributionLambda):
     def _get_distribution_fn(n_dims, flow_types, trainable_base_dist):
         return lambda t: tfd.TransformedDistribution(
             distribution=InverseNormalizingFlowLayer._get_base_dist(t, n_dims, trainable_base_dist),
-            bijector=InverseNormalizingFlowLayer._get_bijector(
-                (t[..., 2 * n_dims :] if trainable_base_dist else t), flow_types, n_dims
+            bijector=tfp.bijectors.Invert(
+                InverseNormalizingFlowLayer._get_bijector(
+                    (t[..., 2 * n_dims :] if trainable_base_dist else t), flow_types, n_dims
+                )
             ),
         )
 
