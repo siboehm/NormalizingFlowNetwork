@@ -51,9 +51,9 @@ def run_cv(
     test_size = 2 * 10 ** 5
     n_samples = n_datapoints + test_size
 
-    if density_name == 'GaussianMixture':
-        x_train = np.load('data/raw/x_data_GaussianMixture.npy')[0:n_samples]
-        y_train = np.load('data/raw/y_data_GaussianMixture.npy')[0:n_samples]
+    if density_name == "GaussianMixture":
+        x_train = np.load("data/raw/x_data_GaussianMixture.npy")[0:n_samples]
+        y_train = np.load("data/raw/y_data_GaussianMixture.npy")[0:n_samples]
     else:
         x_train, y_train = density_classes[density_name](**density_params).simulate(
             n_samples=n_samples

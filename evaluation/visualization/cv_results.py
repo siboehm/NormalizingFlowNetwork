@@ -131,6 +131,68 @@ def plot_single_param(
     )
 
 
+def plot_reg(df, file, result_dir):
+    densities = df["density"].unique()
+    estimators = df["estimator"].unique()
+    df["param_kl_weight_scale"] = df.param_kl_weight_scale * df.n_datapoints
+
+    kl_params = df["param_kl_weight_scale"].unique()
+    map_params = df["param_map_mode"].unique()
+
+    test_score_columns = [
+        column
+        for column in df.columns
+        if column.startswith("split") and column.endswith("_test_score")
+    ]
+    layout = (1, 2)
+    n_curves_to_plot = len(kl_params) * len(map_params)
+
+    for estimator in estimators:
+        fig, axarr = plt.subplots(*layout, figsize=(11 * layout[1], 5 * layout[0]))
+        axarr = [axarr] if len(densities) == 1 else axarr.flatten()
+        for i, density in enumerate(densities):
+            color_iter = iter(cm.gist_rainbow(np.linspace(0, 1, n_curves_to_plot)))
+            for kl in kl_params:
+                for map in map_params:
+                    sub_df = df.loc[
+                        (df["density"] == density)
+                        & (df["estimator"] == estimator)
+                        & (df["param_map_mode"] == map)
+                        & (df["param_kl_weight_scale"] == kl)
+                    ]
+                    n_datapoints = sorted(sub_df["n_datapoints"].unique())
+                    means = np.array([], dtype=np.float32)
+                    stds = np.array([], dtype=np.float32)
+
+                    for n_data in n_datapoints:
+                        scores = []
+                        for c in test_score_columns:
+                            scores += list(sub_df.loc[sub_df["n_datapoints"] == n_data][c].values)
+                        scores = np.array(scores, dtype=np.float32)
+                        means = np.append(means, scores.mean())
+                        stds = np.append(stds, scores.std())
+
+                    c = next(color_iter)
+
+                    label = "{}: kl_scale: {}, map_mode: {}".format(estimator, kl, map)
+                    axarr[i].plot(n_datapoints, means, color=c, label=label)
+                    axarr[i].fill_between(
+                        n_datapoints, means - stds, means + stds, alpha=0.2, color=c
+                    )
+
+                axarr[i].set_xlabel("n_observations")
+                axarr[i].set_ylabel("score")
+                axarr[i].set_title(density)
+                axarr[i].legend()
+                axarr[i].set_xscale("log")
+
+        plt.savefig(
+            os.path.join(
+                result_dir, file.name.split(".")[0] + "_" + "noise_reg_{}.png".format(estimator)
+            )
+        )
+
+
 def plot_map_mle(df, file, result_dir):
     densities = df["density"].unique()
     test_score_columns = [
@@ -358,7 +420,10 @@ def plot_cv_results():
         for file in data_files:
             df = pd.read_csv(file.path)
 
-            if ("06-17_22-33" in result_dir) and file.name == "results.csv":
-                # output_metric_scores(df, file, result_dir)
-                # plot_best(df, file, result_dir)
+            if ("06-17_22-33" in result_dir) and file.name == "results.csv" and False:
+                output_metric_scores(df, file, result_dir)
+                plot_best(df, file, result_dir)
                 plot_map_mle(df, file, result_dir)
+
+            if ("bayes_reg_all" in result_dir) and file.name == "results.csv":
+                plot_reg(df, file, result_dir)
