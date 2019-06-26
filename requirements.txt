@@ -47,8 +47,8 @@ sklearn==0.0
 tb-nightly==1.14.0a20190508
 termcolor==1.1.0
 tf-estimator-nightly==1.14.0.dev2019050801
-tf-nightly==1.14.1.dev20190615
-tfp-nightly==0.8.0.dev20190615
+tf-nightly==1.15.0.dev20190626
+tfp-nightly==0.8.0.dev20190626
 tornado==6.0.2
 traitlets==4.3.2
 wcwidth==0.1.7
