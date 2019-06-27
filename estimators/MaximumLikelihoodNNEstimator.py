@@ -13,6 +13,7 @@ class MaximumLikelihoodNNEstimator(BaseEstimator):
         noise_reg=("fixed_rate", 0.0),
         learning_rate=3e-3,
         activation="relu",
+        random_seed=22,
     ):
         self.x_noise_std = tf.Variable(initial_value=0.0, dtype=tf.float32, trainable=False)
         self.y_noise_std = tf.Variable(initial_value=0.0, dtype=tf.float32, trainable=False)
@@ -26,7 +27,10 @@ class MaximumLikelihoodNNEstimator(BaseEstimator):
         )
 
         super().__init__(
-            dense_layers + [dist_layer], noise_fn_type=noise_reg[0], noise_scale_factor=noise_reg[1]
+            dense_layers + [dist_layer],
+            noise_fn_type=noise_reg[0],
+            noise_scale_factor=noise_reg[1],
+            random_seed=random_seed,
         )
 
         self.compile(

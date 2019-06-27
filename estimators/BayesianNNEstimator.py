@@ -1,3 +1,4 @@
+import numpy as np
 import tensorflow as tf
 import tensorflow_probability as tfp
 from estimators.DistributionLayers import MeanFieldLayer
@@ -19,6 +20,7 @@ class BayesianNNEstimator(BaseEstimator):
         trainable_prior=False,
         map_mode=False,
         prior_scale=1.0,
+        random_seed=22,
     ):
         """
         A bayesian net parametrizing a normalizing flow distribution
@@ -35,6 +37,7 @@ class BayesianNNEstimator(BaseEstimator):
         """
         self.x_noise_std = tf.Variable(initial_value=0.0, dtype=tf.float32, trainable=False)
         self.y_noise_std = tf.Variable(initial_value=0.0, dtype=tf.float32, trainable=False)
+        self.map_mode = map_mode
 
         posterior = self._get_posterior_fn(map_mode=map_mode)
         prior = self._get_prior_fn(trainable_prior, prior_scale)
@@ -49,12 +52,26 @@ class BayesianNNEstimator(BaseEstimator):
         )
 
         super().__init__(
-            dense_layers + [dist_layer], noise_fn_type=noise_reg[0], noise_scale_factor=noise_reg[1]
+            dense_layers + [dist_layer],
+            noise_fn_type=noise_reg[0],
+            noise_scale_factor=noise_reg[1],
+            random_seed=random_seed,
         )
 
         self.compile(
             optimizer=tf.keras.optimizers.Adam(learning_rate), loss=self._get_neg_log_likelihood()
         )
+
+    def score(self, x_data, y_data):
+        x_data = x_data.astype(np.float32)
+        y_data = y_data.astype(np.float32)
+
+        loss = 0
+        nll = self._get_neg_log_likelihood()
+        posterior_draws = 1 if self.map_mode else 50
+        for _ in range(posterior_draws):
+            loss += nll(y_data, self.call(x_data, training=False)).numpy().mean()
+        return -loss / posterior_draws
 
     @staticmethod
     def _get_prior_fn(trainable=False, prior_scale=1.0):

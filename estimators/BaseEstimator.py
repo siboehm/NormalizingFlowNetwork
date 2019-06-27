@@ -7,7 +7,8 @@ tfd = tfp.distributions
 
 
 class BaseEstimator(tf.keras.Sequential):
-    def __init__(self, layers, noise_fn_type="fixed_rate", noise_scale_factor=0.0):
+    def __init__(self, layers, noise_fn_type="fixed_rate", noise_scale_factor=0.0, random_seed=22):
+        tf.set_random_seed(random_seed)
         self.noise_fn_type = noise_fn_type
         self.noise_scale_factor = noise_scale_factor
 
@@ -30,6 +31,12 @@ class BaseEstimator(tf.keras.Sequential):
             ],
             **kwargs
         )
+
+    def score(self, x_data, y_data):
+        x_data = x_data.astype(np.float32)
+        y_data = y_data.astype(np.float32)
+        nll = self._get_neg_log_likelihood()
+        return -nll(y_data, self.call(x_data, training=False)).numpy().mean()
 
     def _assign_data_normalization(self, x, y):
         self.x_mean = np.mean(x, axis=0, dtype=np.float32)
