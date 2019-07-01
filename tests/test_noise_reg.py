@@ -16,7 +16,11 @@ def test_x_noise_reg():
     y_train = noise.sample().numpy()
 
     too_much_noise = NormalizingFlowNetwork(
-        1, n_flows=2, hidden_sizes=(16, 16), noise_reg=("fixed_rate", 3.0), trainable_base_dist=True
+        1,
+        n_flows=2,
+        hidden_sizes=(16, 16),
+        noise_reg=("fixed_rate", 3.0),
+        trainable_base_dist=True,
     )
 
     too_much_noise.fit(x_train, y_train, epochs=700, verbose=0)
@@ -48,7 +52,11 @@ def test_y_noise_reg():
     y_train = np.linspace([[-1]] * 3, [[1]] * 3, 10, dtype=np.float32).reshape((10, 3))
 
     noise = NormalizingFlowNetwork(
-        3, n_flows=3, hidden_sizes=(16, 16), trainable_base_dist=True, noise_reg=("fixed_rate", 1.0)
+        3,
+        n_flows=3,
+        hidden_sizes=(16, 16),
+        trainable_base_dist=True,
+        noise_reg=("fixed_rate", 1.0),
     )
     noise.fit(x_train, y_train, epochs=10, verbose=0)
 

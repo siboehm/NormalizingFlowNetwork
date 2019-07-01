@@ -244,7 +244,9 @@ class InverseNormalizingFlowLayer(tfp.layers.DistributionLambda):
     @staticmethod
     def _get_distribution_fn(n_dims, flow_types, trainable_base_dist):
         return lambda t: tfd.TransformedDistribution(
-            distribution=InverseNormalizingFlowLayer._get_base_dist(t, n_dims, trainable_base_dist),
+            distribution=InverseNormalizingFlowLayer._get_base_dist(
+                t, n_dims, trainable_base_dist
+            ),
             bijector=tfp.bijectors.Invert(
                 InverseNormalizingFlowLayer._get_bijector(
                     (t[..., 2 * n_dims :] if trainable_base_dist else t), flow_types, n_dims

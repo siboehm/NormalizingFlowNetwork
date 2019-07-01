@@ -11,7 +11,7 @@ quicktest:
 	python -m pytest -v -m "not slow"
 
 black: 
-	black --exclude "(venv|\.json)" --line-length 100 .
+	black .
 
 itecdata:
 	scp -r "boehm@$(ITEC_URL):$(ITEC_VI_PATH)/data/local/*" data/cluster

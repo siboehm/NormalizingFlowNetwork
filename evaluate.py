@@ -45,7 +45,9 @@ if __name__ == "__main__":
     for estimator_name, param_grid in run_config["parameter_grids"]:
         estimator = ESTIMATORS[estimator_name]
         scoring_fn = (
-            bayesian_log_likelihood_score if "bayes" in estimator_name else mle_log_likelihood_score
+            bayesian_log_likelihood_score
+            if "bayes" in estimator_name
+            else mle_log_likelihood_score
         )
         estimator_list.append(
             {

@@ -29,7 +29,7 @@ class BaseEstimator(tf.keras.Sequential):
                 AdaptiveNoiseCallback(self.noise_fn_type, self.noise_scale_factor, ndim_x, ndim_y),
                 tf.keras.callbacks.TerminateOnNaN(),
             ],
-            **kwargs
+            **kwargs,
         )
 
     def score(self, x_data, y_data):
