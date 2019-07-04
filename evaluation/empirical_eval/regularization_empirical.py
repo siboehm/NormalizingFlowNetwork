@@ -16,35 +16,17 @@ DATA_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), "../../data/l
 EXP_PREFIX = "regularization_empirical"
 
 model_dict = {
-    "bayesian_NFN_MAP": {
-        "n_flows": 10,
-        "hidden_sizes": (32, 32),
-        "learning_rate": 2e-2,
-        "map_mode": True,
-    },
     "bayesian_NFN": {
         "n_flows": 10,
         "hidden_sizes": (32, 32),
         "learning_rate": 2e-2,
         "map_mode": False,
     },
-    "bayesian_MDN_MAP": {
-        "n_centers": 10,
-        "hidden_sizes": (32, 32),
-        "learning_rate": 2e-2,
-        "map_mode": True,
-    },
     "bayesian_MDN": {
         "n_centers": 10,
         "hidden_sizes": (32, 32),
         "learning_rate": 2e-2,
         "map_mode": False,
-    },
-    "bayesian_KMN_MAP": {
-        "n_centers": 50,
-        "hidden_sizes": (32, 32),
-        "learning_rate": 2e-2,
-        "map_mode": True,
     },
     "bayesian_KMN": {
         "n_centers": 50,
