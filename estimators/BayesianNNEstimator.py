@@ -66,12 +66,14 @@ class BayesianNNEstimator(BaseEstimator):
         x_data = x_data.astype(np.float32)
         y_data = y_data.astype(np.float32)
 
-        loss = 0
+        scores = None
         nll = self._get_neg_log_likelihood()
         posterior_draws = 1 if self.map_mode else 50
         for _ in range(posterior_draws):
-            loss += nll(y_data, self.call(x_data, training=False)).numpy().mean()
-        return -loss / posterior_draws
+            res = tf.expand_dims(-nll(y_data, self.call(x_data, training=False)), axis=0)
+            scores = res if scores is None else tf.concat([scores, res], axis=0)
+        logsumexp = tf.math.reduce_logsumexp(scores, axis=0).numpy() - np.log(posterior_draws)
+        return logsumexp.mean()
 
     @staticmethod
     def _get_prior_fn(trainable=False, prior_scale=1.0):
