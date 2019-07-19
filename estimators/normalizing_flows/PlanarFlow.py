@@ -22,13 +22,14 @@ class PlanarFlow(tfp.bijectors.Bijector):
         assert t.shape[-1] == 2 * n_dims + 1
         u, w, b = (
             t[..., 0:n_dims],
-            t[..., n_dims : 2 * n_dims],
+            # initialize w to 1.0
+            t[..., n_dims : 2 * n_dims] + 1,
             t[..., 2 * n_dims : 2 * n_dims + 1],
         )
 
         # constrain u before assigning it
         self._u = self._u_circ(u, w)
-        self._w = u
+        self._w = w
         self._b = b
 
     @staticmethod
@@ -48,7 +49,7 @@ class PlanarFlow(tfp.bijectors.Bijector):
         wtu = tf.math.reduce_sum(w * u, 1, keepdims=True)
         # add constant to make it more numerically stable
         m_wtu = -1.0 + tf.nn.softplus(wtu) + 1e-5
-        norm_w_squared = tf.math.reduce_sum(w ** 2, 1, keepdims=True) + 1e-6
+        norm_w_squared = tf.math.reduce_sum(w ** 2, 1, keepdims=True) + 1e-9
         return u + (m_wtu - wtu) * (w / norm_w_squared)
 
     def _wzb(self, z):
