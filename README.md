@@ -1,8 +1,21 @@
-# Conditional Density Estimation with Bayesian Normalizing Flows
+# (Bayesian) Normalizing Flow Network
 
-installing:
-```python
+![Outline of the Normalizing Flow Network](nfn_outline.png)
+
+## This repo implements:
+- Conditional Density Estimators: NFN, MDN, KMN
+- Normalizing Flows: Radial, Planar, Affine
+
+
+### Installing dependencies
+```bash
 pip install -r requirements.txt
+# Only necessary for running the evaluation scripts
 pip install --no-dependencies cde
 ```
-The TensorFlow version of cde conflicts with our tf version, but since we only need the density simulation there is no need to install it.
+The TensorFlow version of the cde package conflicts with our version. This is not a problem since we import only `cde.density_simulation` which doesn't depend on TensorFlow.
+### Runing tests
+Tests are implemented using pytests
+```bash
+make tests
+```
