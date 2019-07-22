@@ -23,6 +23,7 @@ def test_bayesian_score():
 
     mle = NormalizingFlowNetwork(1, n_flows=0, hidden_sizes=(6, 6), trainable_base_dist=True)
     mle.fit(x_train, y_train, epochs=20, verbose=0)
+    mle.map_mode = False
     # deterministic, so should be the same
     # mle furthermore has no regularisation loss / KL-divs added, therefore evaluate and nll are the same
     assert bayesian_log_likelihood_score(DummyWrapper(mle), x_train, y_train) == pytest.approx(

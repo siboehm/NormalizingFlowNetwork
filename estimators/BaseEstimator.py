@@ -1,7 +1,6 @@
 import tensorflow as tf
 import tensorflow_probability as tfp
 import numpy as np
-from estimators.AdaptiveNoiseCallback import AdaptiveNoiseCallback
 
 tfd = tfp.distributions
 
@@ -16,21 +15,27 @@ class BaseEstimator(tf.keras.Sequential):
 
     def fit(self, x, y, batch_size=None, epochs=None, verbose=1, **kwargs):
         self._assign_data_normalization(x, y)
+        self._assign_noise_regularisation(n_dims=x.shape[1] + y.shape[1], n_datapoints=x.shape[0])
         assert len(x.shape) == len(y.shape) == 2
-        ndim_x = x.shape[1]
-        ndim_y = y.shape[1]
         super().fit(
             x=x,
             y=y,
             batch_size=batch_size,
             epochs=epochs,
             verbose=verbose,
-            callbacks=[
-                AdaptiveNoiseCallback(self.noise_fn_type, self.noise_scale_factor, ndim_x, ndim_y),
-                tf.keras.callbacks.TerminateOnNaN(),
-            ],
+            callbacks=[tf.keras.callbacks.TerminateOnNaN()],
             **kwargs,
         )
+
+    def _assign_noise_regularisation(self, n_dims, n_datapoints):
+        assert self.noise_fn_type in ["rule_of_thumb", "fixed_rate"]
+        if self.noise_fn_type == "rule_of_thumb":
+            noise_std = self.noise_scale_factor * (n_datapoints + 1) ** (-1 / (4 + n_dims))
+            self.x_noise_std.assign(noise_std)
+            self.y_noise_std.assign(noise_std)
+        elif self.noise_fn_type == "fixed_rate":
+            self.x_noise_std.assign(self.noise_scale_factor)
+            self.y_noise_std.assign(self.noise_scale_factor)
 
     def score(self, x_data, y_data):
         x_data = x_data.astype(np.float32)
