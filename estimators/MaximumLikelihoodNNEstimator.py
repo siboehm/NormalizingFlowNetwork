@@ -15,9 +15,6 @@ class MaximumLikelihoodNNEstimator(BaseEstimator):
         activation="relu",
         random_seed=22,
     ):
-        self.x_noise_std = tf.Variable(initial_value=0.0, dtype=tf.float32, trainable=False)
-        self.y_noise_std = tf.Variable(initial_value=0.0, dtype=tf.float32, trainable=False)
-
         assert len(noise_reg) == 2
 
         dense_layers = self._get_dense_layers(

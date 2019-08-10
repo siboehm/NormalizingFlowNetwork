@@ -8,6 +8,11 @@ tfd = tfp.distributions
 
 class NormalizingFlowNetwork(MaximumLikelihoodNNEstimator):
     def __init__(self, n_dims, n_flows=10, trainable_base_dist=True, **kwargs):
+        """
+        :param n_dims: Dimensionsion of Y. The dimension of X is automatically inferred from the data
+        :param n_flows: The number of radial flows to use.
+        :param trainable_base_dist: Whether the standard normal base dist has trainable mean + diag. convariance
+        """
         dist_layer = InverseNormalizingFlowLayer(
             flow_types=["radial"] * n_flows, n_dims=n_dims, trainable_base_dist=trainable_base_dist
         )

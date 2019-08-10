@@ -6,6 +6,9 @@ tfd = tfp.distributions
 
 
 class BaseEstimator(tf.keras.Sequential):
+    x_noise_std = tf.Variable(initial_value=0.0, dtype=tf.float32, trainable=False)
+    y_noise_std = tf.Variable(initial_value=0.0, dtype=tf.float32, trainable=False)
+
     def __init__(self, layers, noise_fn_type="fixed_rate", noise_scale_factor=0.0, random_seed=22):
         tf.set_random_seed(random_seed)
         self.noise_fn_type = noise_fn_type
@@ -15,8 +18,8 @@ class BaseEstimator(tf.keras.Sequential):
 
     def fit(self, x, y, batch_size=None, epochs=None, verbose=1, **kwargs):
         self._assign_data_normalization(x, y)
+        assert len(x.shape) == len(y.shape) == 2, "Please pass a matrix not a vector"
         self._assign_noise_regularisation(n_dims=x.shape[1] + y.shape[1], n_datapoints=x.shape[0])
-        assert len(x.shape) == len(y.shape) == 2
         super().fit(
             x=x,
             y=y,

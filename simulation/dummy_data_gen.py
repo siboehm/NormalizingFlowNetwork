@@ -1,4 +1,5 @@
 import numpy as np
+from sklearn.datasets import make_moons
 
 
 # a cosine + some noise
@@ -17,6 +18,25 @@ def gen_cosine_noise_data(num, noise_std=0.2, heterosced_noise=0.0):
     y = y.astype(np.float32).reshape((num, 1))
     assert x.shape == y.shape
     return x, y
+
+
+def gen_conditional_rotated_moons(num, noise_std=0.05):
+    # rotates a datapoint around the coordinate center by an angle given in radians
+    def rotate(points, angle):
+        rotation_matrix = np.stack(
+            [(np.cos(angle), -np.sin(angle)), (np.sin(angle), np.cos(angle))], axis=0
+        )
+        return np.matmul(points, rotation_matrix)
+
+    x_train = np.random.uniform(0, 1.5, num)
+    x_train = np.expand_dims(x_train, 1)
+
+    # discard the classification label
+    y_train, _ = make_moons(num, shuffle=True, noise=noise_std)
+
+    for i in range(y_train.shape[0] - 1):
+        y_train[i] = rotate(y_train[i : i + 1], x_train[i][0])
+    return x_train, y_train
 
 
 def gen_trippe_hetero_data(
