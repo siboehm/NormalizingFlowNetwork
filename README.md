@@ -1,21 +1,31 @@
 # (Bayesian) Normalizing Flow Network
-
+A Normalizing Flow based model for Conditional Density Estimation.
 ![Outline of the Normalizing Flow Network](nfn_outline.png)
+More info about the NFN: [paper](https://arxiv.org/abs/1907.08982), [blog post](https://siboehm.com/articles/19/normalizing-flow-network)
 
 ## This repo implements:
-- Conditional Density Estimators: NFN, MDN, KMN
-- Normalizing Flows: Radial, Planar, Affine
+### Conditional Density Estimators: 
+- Normalizing Flow Network (NFN)
+- Mixture Density Network (MDN)
+- Kernel Mixture Network (KMN)
+### Normalizing Flows
+- Radial Flow
+- Planar Flow
+- Affine Flow
 
 
-### Installing dependencies
+## Installing dependencies
+We use the nightly releases of TensorFlow Probability to get the newest layers for Variational Inference. Python version is 3.6.
 ```bash
 pip install -r requirements.txt
-# Only necessary for running the evaluation scripts
+# Only necessary for running the evaluation scripts, not necessary for development
 pip install --no-dependencies cde
 ```
-The TensorFlow version of the cde package conflicts with our version. This is not a problem since we import only `cde.density_simulation` which doesn't depend on TensorFlow.
-### Runing tests
-Tests are implemented using pytests
+## Running tests
+Tests are implemented using pytest
 ```bash
+# run full test suit
 make tests
+# run tests without the slow integration tests
+make quicktest
 ```
