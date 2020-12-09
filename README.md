@@ -25,7 +25,7 @@ pip install --no-dependencies cde
 Tests are implemented using pytest
 ```bash
 # run full test suit
-make tests
+pytest tests/
 # run tests without the slow integration tests
-make quicktest
+pytest tests/ -m "not slow"
 ```
