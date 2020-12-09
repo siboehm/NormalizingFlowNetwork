@@ -9,7 +9,7 @@ from estimators import (
 )
 
 tfd = tfp.distributions
-tf.random.set_random_seed(22)
+tf.random.set_seed(22)
 np.random.seed(22)
 
 

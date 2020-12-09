@@ -10,7 +10,7 @@ class BaseEstimator(tf.keras.Sequential):
     y_noise_std = tf.Variable(initial_value=0.0, dtype=tf.float32, trainable=False)
 
     def __init__(self, layers, noise_fn_type="fixed_rate", noise_scale_factor=0.0, random_seed=22):
-        tf.set_random_seed(random_seed)
+        tf.random.set_seed(random_seed)
         self.noise_fn_type = noise_fn_type
         self.noise_scale_factor = noise_scale_factor
 

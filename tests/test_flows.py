@@ -30,14 +30,14 @@ def flow_dimension_testing(flow_name):
 
         tensor = [[1.0] * dim] + ([[0.0] * dim] * (batch_size - 2)) + [[1.0] * dim]
         res = flow.forward(tensor).numpy()
-        assert all(res[0] == res[-1])
-        assert all(res[1] == res[-2])
+        assert res[0] == pytest.approx(res[-1], rel=1e-5)
+        assert res[1] == pytest.approx(res[-2], rel=1e-5)
         assert not all(res[0] == res[1])
 
         tensor = [[1.0] * dim] + ([[0.0] * dim] * (batch_size - 2)) + [[1.0] * dim]
         res = flow._forward_log_det_jacobian(tensor).numpy()
-        assert res[0] == pytest.approx(res[-1])
-        assert res[1] == pytest.approx(res[-2])
+        assert res[0] == pytest.approx(res[-1], rel=1e-5)
+        assert res[1] == pytest.approx(res[-2], rel=1e-5)
         assert not res[0] == pytest.approx(res[1])
 
 

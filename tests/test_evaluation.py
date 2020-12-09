@@ -5,7 +5,7 @@ from estimators import BayesNormalizingFlowNetwork, NormalizingFlowNetwork
 from evaluation.scorers import bayesian_log_likelihood_score, mle_log_likelihood_score
 import pytest
 
-tf.random.set_random_seed(22)
+tf.random.set_seed(22)
 
 
 class DummyWrapper:

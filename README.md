@@ -15,7 +15,7 @@ More info about the NFN: [paper](https://arxiv.org/abs/1907.08982), [blog post](
 
 
 ## Installing dependencies
-We use the nightly releases of TensorFlow Probability to get the newest layers for Variational Inference. Python version is 3.6.
+Test with Python version 3.8.
 ```bash
 pip install -r requirements.txt
 # Only necessary for running the evaluation scripts, not necessary for development

@@ -5,7 +5,7 @@ import numpy as np
 from estimators import NormalizingFlowNetwork, MixtureDensityNetwork, KernelMixtureNetwork
 
 tfd = tfp.distributions
-tf.random.set_random_seed(22)
+tf.random.set_seed(22)
 np.random.seed(22)
 
 
@@ -41,7 +41,7 @@ def model_output_dims_3d_testing(model):
 
 
 def on_sinusoidal_gaussian_testing(model, expected_score):
-    tf.random.set_random_seed(22)
+    tf.random.set_seed(22)
     np.random.seed(22)
 
     # sinusoidal data with heteroscedastic noise
@@ -60,7 +60,7 @@ def on_sinusoidal_gaussian_testing(model, expected_score):
 
 
 def on_bimodal_gaussian_testing(model, expected_score):
-    tf.random.set_random_seed(22)
+    tf.random.set_seed(22)
     np.random.seed(22)
 
     def get_data(sample_size=400):

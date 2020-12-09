@@ -18,7 +18,8 @@ def bayesian_log_likelihood_score(wrapped_model, x, y, **kwargs):
     nll = wrapped_model.model._get_neg_log_likelihood()
     posterior_draws = 1 if wrapped_model.model.map_mode else 50
     for _ in range(posterior_draws):
-        res = np.expand_dims(-nll(y, wrapped_model.model.call(x, training=False)).numpy(), axis=0)
+        np_nll = -nll(y, wrapped_model.model(x, training=False))
+        res = np.expand_dims(np_nll, axis=0)
         scores = res if scores is None else np.concatenate([scores, res], axis=0)
         print(scores.shape)
     logsumexp = scipy.special.logsumexp(scores, axis=0) - np.log(posterior_draws)
