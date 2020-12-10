@@ -15,9 +15,10 @@ More info about the NFN: [paper](https://arxiv.org/abs/1907.08982), [blog post](
 
 
 ## Installing dependencies
-Test with Python version 3.8.
+Tested with Python version 3.8.
 ```bash
 pip install -r requirements.txt
+pip install -e .
 # Only necessary for running the evaluation scripts, not necessary for development
 pip install --no-dependencies cde
 ```

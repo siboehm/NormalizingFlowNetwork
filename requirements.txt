@@ -3,7 +3,5 @@ matplotlib
 tensorflow
 tensorflow_probability
 pytest
-numpy
-scipy
 scikit_learn
 pre-commit
